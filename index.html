@@ -1,0 +1,4129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VIP电投 原型 v0 · 跳转骨架</title>
+<style>
+  /* ===== 全局 reset + 变量 ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg:#0c0f14; --panel:#151a23; --panel-2:#1e242f; --line:#2a3140;
+    --ink:#e8ecf3; --ink-2:#9aa3b4; --ink-3:#5a6374;
+    --gold:#c9a24e; --red:#d6423b; --blue:#3b7cd6; --green:#37a06b;
+    --accent:#4a9eff;
+    --radius:10px;
+  }
+  html, body { background:#0a0d12; color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; font-size:14px; }
+  body { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; }
+
+  /* ===== 调试面板（左上角，切换页面） ===== */
+  .debug-bar {
+    position:fixed; top:12px; left:12px; z-index:9999;
+    background:rgba(20,24,32,.95); border:1px solid var(--line); border-radius:8px;
+    padding:8px; font-size:12px; display:flex; gap:6px; flex-wrap:wrap; max-width:320px;
+  }
+  .debug-bar b { color:var(--gold); margin-right:4px; align-self:center; }
+  .debug-bar button {
+    background:var(--panel-2); border:1px solid var(--line); color:var(--ink);
+    padding:4px 10px; border-radius:6px; cursor:pointer; font-size:12px;
+  }
+  .debug-bar button:hover { background:var(--line); }
+  .debug-bar button.active { background:var(--gold); color:#000; border-color:var(--gold); }
+
+  /* ===== 手机外壳 ===== */
+  .device {
+    width:390px; height:844px;
+    background:var(--bg); border-radius:28px; overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.5), 0 0 0 10px #1a1d24, 0 0 0 11px #333;
+    position:relative; display:flex; flex-direction:column;
+  }
+  /* iOS 状态栏（全局，所有页面共用；Figma .system/status-bar 390×45）*/
+  .device .status-bar {
+    height:44px; flex-shrink:0; background:#000; color:#fff;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 22px 0 26px; position:relative; z-index:10;
+    font-family:"PingFang SC", -apple-system, sans-serif;
+  }
+  .device .status-bar .time {
+    font-size:17px; font-weight:600; letter-spacing:.5px;
+  }
+  .device .status-bar .indicators {
+    display:flex; align-items:center; gap:5px; font-size:12px;
+  }
+  .device .status-bar .signal { letter-spacing:-1px; font-size:14px; }
+  .device .status-bar .wifi { font-size:13px; }
+  .device .status-bar .battery {
+    display:inline-flex; align-items:center; width:24px; height:11px;
+    border:1px solid rgba(255,255,255,.7); border-radius:2.5px; padding:1px;
+    position:relative;
+  }
+  .device .status-bar .battery::after {
+    content:""; position:absolute; right:-3px; top:50%; transform:translateY(-50%);
+    width:1.5px; height:5px; background:rgba(255,255,255,.7); border-radius:0 1px 1px 0;
+  }
+  .device .status-bar .battery i { width:100%; height:100%; background:#fff; border-radius:1px; }
+  .page { width:100%; flex:1; display:none; flex-direction:column; overflow:hidden; position:relative; min-height:0; }
+  .page.active { display:flex; }
+
+  /* ===== 通用：Header（Figma C1 Dev Mode 对齐）===== */
+  .hdr {
+    display:flex; align-items:center; gap:8px; padding:10px 10px;
+    background:#000; border-bottom:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .hdr .brand {
+    display:flex; align-items:center; gap:3px; color:var(--gold); cursor:pointer; flex-shrink:0;
+  }
+  .hdr .brand .star { font-size:14px; }
+  .hdr .brand .zh { font-size:12px; font-weight:700; letter-spacing:.5px; }
+  .hdr .brand .en { font-size:7px; font-weight:500; letter-spacing:1px; color:var(--gold); opacity:.85; }
+  .hdr .brand.back::before { content:"←"; margin-right:2px; }
+  /* 老类名兼容保留 */
+  .hdr .logo { color:var(--gold); font-weight:700; letter-spacing:.5px; font-size:12px; }
+  /* 用户名胶囊 + 余额胶囊（Figma Group 2087331245/2087331286 圆角背景）*/
+  .hdr .user, .hdr .bal {
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08);
+    padding:3px 10px; border-radius:12px; font-size:11px;
+    display:inline-flex; align-items:center; gap:4px;
+  }
+  .hdr .user { color:var(--ink); }
+  .hdr .bal { margin-left:auto; color:#fff; font-weight:500; }
+  .hdr .ic { width:28px; height:28px; border-radius:50%; background:var(--panel-2); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; }
+  .hdr .ic:active { background:var(--line); }
+
+  /* ===== 公告跑马灯 ===== */
+  .marquee {
+    display:flex; align-items:center; gap:8px; padding:6px 10px;
+    background:#0f1420; border-bottom:1px solid var(--line); font-size:12px; color:var(--ink-2);
+    flex-shrink:0; overflow:hidden;
+  }
+  .marquee .ico { color:var(--gold); }
+  .marquee .scroll { flex:1; white-space:nowrap; overflow:hidden; }
+  .marquee .scroll span { display:inline-block; animation:scroll 20s linear infinite; padding-left:100%; }
+  @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-100%)} }
+  .marquee .multi-btn {
+    background:var(--gold); color:#000; font-size:11px; padding:3px 10px; border-radius:12px;
+    cursor:pointer; white-space:nowrap;
+  }
+
+  /* ===== Banner（Figma H3：赌厅实景大图，随赌厅 Tab 切换）===== */
+  .banner {
+    margin:8px 12px; height:97px; border-radius:8px; position:relative; overflow:hidden;
+    background:
+      radial-gradient(ellipse at 30% 80%, rgba(150,30,40,.55), transparent 50%),
+      radial-gradient(ellipse at 50% 110%, rgba(40,90,160,.5), transparent 55%),
+      radial-gradient(ellipse at 70% 40%, rgba(201,162,78,.3), transparent 50%),
+      linear-gradient(180deg,#1a2850 0%, #0f1d3c 50%, #05101e 100%);
+    border:1px solid #3a2a15; flex-shrink:0;
+  }
+  .banner img {
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    transition:opacity .3s;
+  }
+  .banner .banner-fallback {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:15px; font-weight:700; letter-spacing:2px;
+    font-family:"Georgia", serif; font-style:italic;
+    text-shadow:0 2px 4px rgba(0,0,0,.6);
+    pointer-events:none;
+  }
+  /* 图片加载失败时 img hidden，fallback 自动显露 */
+  .banner img.hide { opacity:0; }
+
+  /* ===== 大厅 ===== */
+  .hall-filter {
+    display:flex; gap:8px; padding:8px 12px 0; overflow-x:auto; margin-bottom:8px; flex-shrink:0;
+  }
+  .hall-filter::-webkit-scrollbar { display:none; }
+  /* 赌厅 Tab：纯 logo 图显示，无外框无底色；logo 本身带圆角形状 */
+  .tab {
+    position:relative; cursor:pointer; flex-shrink:0;
+    width:67px; height:34px;
+    background:transparent center center / contain no-repeat;
+    border:none;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; color:var(--ink-2); white-space:nowrap;
+    opacity:.65; transition:opacity .2s;
+  }
+  .tab.active { opacity:1; }
+  .tab:not(.active):hover { opacity:.85; }
+  /* 每个 Tab 的 logo 背景图 */
+  .tab.tab-all     { background-image:url('figma/tabs/tab-all.png'); }
+  .tab.tab-newport { background-image:url('figma/tabs/tab-newport.png'); }
+  .tab.tab-onekey  { background-image:url('figma/tabs/tab-onekey.png'); }
+  .tab.tab-cagayan { background-image:url('figma/tabs/tab-cagayan.png'); }
+  .tab.tab-solaire { background-image:url('figma/tabs/tab-solaire.png'); }
+  /* Tab 里的文字（fallback，图片载不出时显示） */
+  .tab .tab-text {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--ink-2); font-size:11px;
+    background:rgba(26,30,40,.85);  /* 覆盖在 bg-image 上 */
+    opacity:0;  /* 默认隐藏，让 logo 图显示 */
+    transition:opacity .2s;
+  }
+  .tab.fallback .tab-text { opacity:1; }
+  .tab .badge {
+    position:absolute; top:-4px; right:-4px; background:var(--red); color:#fff;
+    font-size:10px; padding:1px 5px; border-radius:8px; min-width:14px; text-align:center;
+    z-index:2;
+  }
+
+  /* 排序区（Figma: 两个下拉 + 视图切换）*/
+  .hall-sort {
+    display:flex; align-items:center; gap:10px; padding:0 12px 8px; flex-shrink:0;
+  }
+  .hall-sort .sort-dropdown {
+    display:inline-flex; align-items:center; gap:4px; position:relative;
+    background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:8px;
+    padding:6px 10px; font-size:13px; cursor:pointer; user-select:none;
+  }
+  .hall-sort .sort-menu {
+    display:none; position:absolute; top:calc(100% + 4px); left:0;
+    background:#151821; border:1px solid var(--line); border-radius:8px; padding:4px 0;
+    min-width:110px; box-shadow:0 4px 16px rgba(0,0,0,.6); z-index:50;
+  }
+  .hall-sort .sort-menu.open { display:block; }
+  .hall-sort .sort-opt {
+    padding:8px 14px; font-size:12px; color:var(--ink); cursor:pointer; white-space:nowrap;
+  }
+  .hall-sort .sort-opt:hover { background:rgba(201,162,78,.15); color:var(--gold); }
+  .hall-sort .sort-dropdown .caret { font-size:10px; color:var(--ink-2); margin-left:2px; }
+  .hall-sort .sort-dropdown .badge-sm {
+    background:rgba(201,162,78,.25); color:var(--gold); font-size:10px;
+    padding:1px 5px; border-radius:8px; font-weight:600;
+  }
+  .hall-sort .view-toggle {
+    margin-left:auto;
+    display:flex; background:rgba(0,0,0,.35); border:1px solid var(--line); border-radius:16px; overflow:hidden;
+  }
+  .hall-sort .view-toggle span { padding:5px 14px; font-size:12px; cursor:pointer; color:var(--ink-2); }
+  .hall-sort .view-toggle span.active {
+    background:linear-gradient(180deg,#e8bd70,#d9a552); color:#492c00; font-weight:600;
+  }
+
+  .lucky-roads {
+    padding:0 12px 8px; flex-shrink:0;
+  }
+  .lucky-roads h4 { font-size:11px; color:var(--ink-2); margin-bottom:6px; font-weight:400; }
+  .luck-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+  /* 好路卡（Figma node 11869:102918 card_fast/card3，118×74 精确规范） */
+  .luck-card {
+    height:74px; border-radius:4px; cursor:pointer; position:relative; overflow:hidden;
+    background:linear-gradient(180deg, #35475d 0%, #1d2939 100%);
+    border:1px solid rgba(255,255,255,.8); backdrop-filter:blur(4px);
+    padding:6px 8px 4px;
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .luck-card::before {
+    /* 淡色纹理叠加（Figma mix-blend-color-dodge 60% opacity 图层模拟）*/
+    content:""; position:absolute; inset:0;
+    background:radial-gradient(ellipse at 70% 30%, rgba(255,255,255,.08), transparent 50%);
+    pointer-events:none;
+  }
+  /* 上半：倒计时 + 大路 */
+  .luck-card .top-row {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:6px; flex:1;
+  }
+  /* 大路图：Figma node 11869:102933 精确规范，60×29 小尺寸 14×4 格，不挤压底部文字 */
+  .luck-card .mini-road {
+    width:61px; height:31px; background:#dce1e6; border:0.5px solid #dce1e6; border-radius:2px;
+    display:grid; grid-template-columns:repeat(14,1fr); grid-template-rows:repeat(4,1fr);
+    gap:0.5px; padding:0.5px; flex-shrink:0;
+  }
+  .luck-card .mini-road i {
+    width:100%; height:100%; border-radius:50%; background:#fff;
+    border:0.8px solid transparent; box-sizing:border-box;
+  }
+  .luck-card .mini-road i.r { border-color:#ff1921; }
+  .luck-card .mini-road i.b { border-color:#0083ff; }
+  .luck-card .mini-road i {
+    display:block; border-radius:50%; background:var(--red); opacity:.8;
+  }
+  /* 旧 nth-child 着色规则不再使用，改由 HTML class .r / .b 精确控制 */
+  /* 底部行：CAG036 左 + 路型标签 右（Figma PingFang SC 9px 白色）*/
+  .luck-card .bot-row {
+    display:flex; align-items:flex-end; justify-content:space-between;
+    font-size:9px; color:#fff; z-index:2; position:relative;
+  }
+  .luck-card .name { font-size:9px; color:#fff; font-weight:500; font-family:"PingFang SC", sans-serif; }
+  .luck-card .tag { font-size:9px; color:#fff; font-weight:600; font-family:"PingFang SC", sans-serif; }
+  /* 好路卡倒计时（Figma：红/绿圆环 + 数字）—— flex item，不再 absolute，和 mini-road 并排 */
+  .luck-card .cd {
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    background:rgba(0,0,0,.6); border:3px solid #00c500;
+    color:#fff; font-size:14px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    z-index:3;
+  }
+  .luck-card .cd.red { border-color:#ff1921; }
+  .luck-card .name { font-size:10px; color:var(--ink-2); }
+  .luck-card .tag { font-size:9px; color:var(--gold); text-align:right; }
+
+  /* 全路模式 1 列（Figma table_default 374 宽）；极简 2 列（table_simple 182 宽）*/
+  .table-grid {
+    flex:1; overflow-y:auto; padding:0 8px 12px; display:grid; grid-template-columns:1fr; gap:10px;
+  }
+  body.simple .table-grid {
+    grid-template-columns:1fr 1fr; gap:10px;
+  }
+  .table-grid::-webkit-scrollbar { width:4px; }
+  .table-grid::-webkit-scrollbar-thumb { background:var(--line); border-radius:2px; }
+
+  /* 桌台卡 header（Figma Dev Mode 2026-04-24 node 11903:144517）
+     字段顺序（Sammy 2026-04-24 校正）：赌场名 → 桌台号 → 倒计时秒数 → 限红 */
+  .tcard .thdr {
+    display:flex; align-items:center; gap:8px; padding:6px 10px; height:32px;
+    font-family:"PingFang SC", -apple-system, sans-serif;
+    background:rgba(0,0,0,.2); border-bottom:none;
+  }
+  /* 赌场名 logo（斜体金色，Figma Casino onexky 样式） */
+  .tcard .thdr .club-logo {
+    height:22px; padding:0 6px; border-radius:3px; background:#c9a24e; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:600; font-style:italic; font-family:"Georgia", serif;
+    flex-shrink:0;
+  }
+  /* 桌台号："快速桌台 70" */
+  .tcard .thdr .tlabel {
+    color:#fff; font-size:13px; flex:1; font-weight:600;
+  }
+  /* 倒计时秒数（红/绿框；0 秒 + 开牌态 = 红框，>=5 秒 = 绿框）—— 不是桌号徽章！ */
+  .tcard .thdr .tnum {
+    color:#ff1921; font-weight:700; font-size:13px; padding:2px 8px;
+    border:1px solid #ff1921; border-radius:3px; min-width:24px; text-align:center;
+    background:rgba(0,0,0,.3);
+  }
+  .tcard .thdr .tnum.green { color:#00c500; border-color:#00c500; }
+  /* 限红（无限红 = 黑底白字胶囊；数字范围 = 灰字"限红" + 白字范围） */
+  .tcard .thdr .limit {
+    background:#000; color:#fff; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:500;
+    line-height:1.2;
+  }
+  .tcard .thdr .limit.range {
+    background:transparent; padding:0; color:#fff; font-size:12px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .tcard .thdr .limit.range::before {
+    content:"限红"; color:rgba(255,255,255,.7); font-size:10px; font-weight:400;
+  }
+
+  /* 7 维度统计（Figma 32×16 色块 + 11px 数字）*/
+  .tcard .stats7 {
+    display:flex; gap:4px; padding:6px 10px; height:28px;
+    background:rgba(0,0,0,.16); align-items:center; justify-content:space-between;
+    font-family:"PingFang SC", sans-serif; text-align:center;
+  }
+  .tcard .stats7 .cell {
+    display:inline-flex; align-items:center; gap:3px; line-height:1;
+  }
+  .tcard .stats7 .tag {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:14px; height:16px; padding:0 3px; border-radius:2px;
+    color:#faf8f4; font-weight:500; font-size:11px;
+  }
+  /* 双字维度（庄对/闲对/幸运6）色块更宽 */
+  .tcard .stats7 .cell.l-zd .tag,
+  .tcard .stats7 .cell.l-xd .tag,
+  .tcard .stats7 .cell.l-lk .tag { min-width:28px; padding:0 4px; }
+  .tcard .stats7 .cell b { font-size:11px; color:#fff; font-weight:500; }
+  /* 7 色 */
+  .tcard .stats7 .l-j  .tag { background:#da8400; }  /* 局 橙 */
+  .tcard .stats7 .l-zh .tag { background:#ff1921; }  /* 庄 红 */
+  .tcard .stats7 .l-xi .tag { background:#0083ff; }  /* 闲 蓝 */
+  .tcard .stats7 .l-he .tag { background:#00c500; }  /* 和 绿 */
+  .tcard .stats7 .l-zd .tag { background:#ff4646; }  /* 庄对 浅红 */
+  .tcard .stats7 .l-xd .tag { background:#0096ff; }  /* 闲对 浅蓝 */
+  .tcard .stats7 .l-lk .tag { background:#ff6619; }  /* 幸运6 橙红 */
+
+  /* 状态胶囊（Figma 80×34 + 20px 字 + 圆角 23）居中覆盖在大路上方 */
+  .tcard .status-pill {
+    position:absolute; left:50%; top:62%; transform:translate(-50%,-50%);
+    width:80px; height:34px; padding:0;
+    border-radius:23px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:"PingFang SC", sans-serif; font-size:20px; font-weight:500;
+    color:#fff; pointer-events:none; z-index:5; white-space:nowrap;
+    letter-spacing:1px;
+  }
+  .tcard .status-pill.deal {
+    background:rgba(79,138,246,.64); border:1px solid #4f8af6;
+  }
+  /* 桌台状态覆盖层（对齐现状 components/.../statusWrap.tsx：维护/包桌/换靴/尾牌四态） */
+  .tcard .status-overlay {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:6px;
+    background:rgba(0,0,0,.78); border-radius:10px; z-index:5;
+    color:#fff; font-size:14px; font-weight:600;
+  }
+  .tcard .status-overlay.maintain { background:rgba(60,60,60,.85); color:#aaa; }
+  .tcard .status-overlay.vip { background:rgba(0,0,0,.78); color:var(--gold); }
+  .tcard .status-overlay.vip::after { content:'🔒'; font-size:22px; }
+  .tcard .status-overlay.shoe { background:rgba(0,0,0,.78); color:#fbbf24; }
+  .tcard .status-overlay.weishu { background:rgba(0,0,0,.78); color:#ff6619; }
+  /* 限红选择器小气泡（对齐现状 SelectPicker 组件） */
+  .limit-popover {
+    position:absolute; background:var(--panel); border:1px solid var(--gold);
+    border-radius:6px; padding:4px 0; z-index:60; min-width:120px;
+    box-shadow:0 4px 16px rgba(0,0,0,.6); display:none;
+  }
+  .limit-popover.show { display:block; }
+  .limit-popover .lp-item {
+    padding:8px 14px; color:var(--ink-2); font-size:12px; cursor:pointer;
+  }
+  .limit-popover .lp-item:hover { background:rgba(201,162,78,.15); color:var(--gold); }
+  .limit-popover .lp-item.active { color:var(--gold); }
+  /* 大厅演示开关（仅原型用） */
+  .hall-demo-toggle {
+    display:flex; align-items:center; gap:6px; padding:8px 12px; margin:0 0 10px;
+    background:rgba(44,40,36,.5); border:1px dashed rgba(255,255,255,.12);
+    border-radius:8px; color:var(--ink-3); font-size:11px; cursor:pointer;
+  }
+  .hall-demo-toggle input { accent-color:var(--gold); flex-shrink:0; }
+  .tcard .status-pill.shuffle {
+    background:rgba(237,88,88,.64); border:1px solid #ef5757;
+  }
+
+  .tcard {
+    background:radial-gradient(ellipse at 50% 110%, #171933 0%, #202126 38%, #181818 62%, #181818 100%);
+    border:1px solid #eed38d; border-radius:4px; padding:0;
+    cursor:pointer; position:relative; overflow:hidden;
+    box-shadow:inset 0 0 10px rgba(0,0,0,.5);
+    min-height:160px; display:flex; flex-direction:column;
+  }
+  .tcard .top { display:flex; justify-content:space-between; align-items:center; font-size:10px; color:var(--ink-2); }
+  .tcard .tname { color:var(--ink); font-size:11px; font-weight:500; }
+  .tcard .cd {
+    background:var(--green); color:#fff; font-size:10px; padding:1px 5px; border-radius:4px; min-width:20px; text-align:center;
+  }
+  .tcard .cd.red { background:var(--red); }
+  .tcard .roads {
+    background:#0a0d12; border-radius:4px; height:60px; margin:6px 0;
+    display:grid; grid-template-columns:repeat(12,1fr); grid-template-rows:repeat(6,1fr); gap:1px; padding:2px;
+  }
+  .tcard .roads i { display:block; width:100%; height:100%; border-radius:50%; background:var(--red); opacity:.7; }
+  .tcard .roads i:nth-child(odd) { background:var(--blue); }
+  .tcard .roads i:nth-child(13n) { background:var(--green); }
+  .tcard .stats { display:flex; gap:6px; font-size:10px; color:var(--ink-2); flex-wrap:wrap; }
+  .tcard .stats b { color:var(--ink); }
+  /* 路型标签（Figma：右下角切角橙色胶囊 + 白字） */
+  .tcard .tag {
+    position:absolute; bottom:0; right:0;
+    font-size:11px; color:#fff; font-weight:500; letter-spacing:.3px;
+    background:#ff9f1c; padding:4px 10px 4px 14px;
+    border-radius:6px 0 0 0;
+    max-width:50%; text-align:right; line-height:1.2;
+  }
+
+  /* ===== 登录页（2026-04-24 Figma Dev Mode 精确对齐 node 11869:110940）===== */
+  .login {
+    flex:1; position:relative; display:flex; flex-direction:column; padding:0;
+    font-family:"PingFang SC", -apple-system, "Microsoft YaHei", sans-serif;
+    /* 夜景实景大图占位（真实稿用 img261） + 底部渐变叠加（Figma: linear-gradient 179.29deg） */
+    background:
+      linear-gradient(179.3deg, rgba(27,20,14,0) 2%, rgb(26,21,15) 26%, rgb(26,21,15) 41%, rgb(19,16,14) 99%),
+      radial-gradient(ellipse at 50% 22%, rgba(201,162,78,.25), transparent 55%),
+      linear-gradient(180deg,#1a1510 0%, #0f0b07 60%, #050302 100%);
+  }
+  /* 品牌区（Figma 原稿 top:338px，按比例用 padding-top 保证跟随容器高度）*/
+  .login .brand {
+    margin-top:40%; padding:0 34px;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  .login .star {
+    width:66px; height:66px; display:flex; align-items:center; justify-content:center;
+    font-size:52px; color:var(--gold); text-shadow:0 0 20px rgba(201,162,78,.7);
+    flex-shrink:0;
+  }
+  .login .brand .wordmark { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .login .brand h1 {
+    color:var(--gold); font-size:30px; letter-spacing:3px; font-weight:700;
+    line-height:1; text-shadow:0 0 8px rgba(201,162,78,.3);
+  }
+  .login .brand p {
+    color:var(--gold); font-size:10px; letter-spacing:6px; font-weight:500; opacity:.85;
+  }
+
+  /* Form 322px 居中（Figma 原稿 top 距顶 438 / 总 844 ≈ 52%） */
+  .login .form {
+    margin:40px auto 0; width:322px;
+    display:flex; flex-direction:column; gap:20px;
+  }
+  .login .input-wrap {
+    position:relative; width:322px; height:42px; display:flex; align-items:center;
+    background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.1); border-radius:40px;
+    padding:0 16px; gap:10px;
+  }
+  .login .input-wrap .ic {
+    width:22px; height:22px; display:flex; align-items:center; justify-content:center;
+    color:var(--gold); font-size:16px; flex-shrink:0;
+  }
+  .login input {
+    flex:1; background:transparent; border:none; outline:none; color:#fff;
+    font-size:14px; font-family:inherit; padding:0;
+  }
+  .login input::placeholder { color:rgba(255,255,255,.6); font-weight:300; }
+  .login .eye {
+    position:absolute; right:16px; top:50%; transform:translateY(-50%);
+    color:var(--ink-2); cursor:pointer; font-size:14px; user-select:none;
+    width:18px; height:18px; display:flex; align-items:center; justify-content:center;
+  }
+  .login .eye.closed::after {
+    content:""; position:absolute; left:-2px; right:-2px; top:50%;
+    height:1.5px; background:currentColor; transform:rotate(-25deg); border-radius:2px;
+  }
+  /* L3 记住账号：Figma 稿右对齐（justify-end, Sammy 2026-04-24 以 UI 为准） */
+  .login .remember {
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:12px; color:#fff; cursor:pointer;
+    align-self:flex-end; width:fit-content;
+  }
+  .login .remember input[type=checkbox] {
+    margin:0; width:16px; height:16px; flex-shrink:0;
+    accent-color:var(--gold); border-radius:4px;
+  }
+  /* 登录按钮：Figma 精确色 rgb(232,189,112)→rgb(237,209,133) + 深褐金文字 */
+  .login .btn-primary {
+    width:322px; height:46px; border-radius:23px; cursor:pointer;
+    border:1.5px solid #fff;
+    background:linear-gradient(180deg, rgb(237,209,133), rgb(232,189,112));
+    color:#492c00; font-size:18px; font-weight:600; letter-spacing:3px;
+    font-family:inherit;
+    box-shadow:0 4px 16px rgba(0,0,0,.24);
+  }
+  .login .btn-primary:disabled {
+    opacity:.45; cursor:not-allowed; box-shadow:none;
+  }
+  /* 错误态：input-wrap.error 红框 + err-icon 显示 + form-error 红字 */
+  .login .input-wrap.error { border-color:#ff5a5a; }
+  .login .err-icon {
+    display:none; color:#ff5a5a; font-size:14px; margin-left:6px; flex-shrink:0;
+  }
+  .login .input-wrap.error .err-icon { display:flex; }
+  .login .form-error {
+    display:none; width:322px; color:#ff5a5a; font-size:11px; margin:-8px 0 4px 14px;
+  }
+  .login .form-error.show { display:block; }
+  /* 演示分流选择器（仅原型用，前端代码无此元素） */
+  .login .login-demo {
+    margin-top:14px; display:flex; align-items:center; gap:8px;
+    width:322px; padding:8px 12px; background:rgba(44,40,36,.5);
+    border-radius:8px; border:1px dashed rgba(255,255,255,.12);
+  }
+  .login .login-demo .ddesc { font-size:11px; color:var(--ink-3); flex-shrink:0; }
+  .login .login-demo-sel {
+    flex:1; background:rgba(0,0,0,.3); border:1px solid var(--line);
+    color:var(--ink-2); font-size:11px; padding:4px 6px; border-radius:4px;
+    font-family:inherit;
+  }
+  /* 登录失败 toast */
+  .login-toast {
+    position:absolute; top:30%; left:50%; transform:translateX(-50%);
+    padding:10px 18px; background:rgba(0,0,0,.85); color:#fff; font-size:13px;
+    border-radius:6px; z-index:100; opacity:0; pointer-events:none; transition:opacity .25s;
+  }
+  .login-toast.show { opacity:1; }
+  /* 语言切换：胶囊（圆角 50px）+ 国旗 + 文字 + 下拉箭头 */
+  .login .lang {
+    position:relative; align-self:center;
+    padding:8px 14px; display:inline-flex; align-items:center; gap:6px;
+    background:rgba(44,40,36,.6); border-radius:50px;
+    font-size:12px; color:#fff; cursor:pointer; user-select:none; width:fit-content;
+  }
+  .login .lang .flag { font-size:16px; line-height:1; }
+  .login .lang .caret { font-size:10px; opacity:.7; margin-left:2px; }
+  .login .lang .caret { font-size:10px; opacity:.7; }
+  .login .lang-menu {
+    display:none; position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+    background:#151821; border:1px solid var(--line); border-radius:8px; padding:4px 0;
+    min-width:120px; box-shadow:0 4px 16px rgba(0,0,0,.6); z-index:10;
+  }
+  .login .lang-menu.open { display:block; }
+  .login .lang-opt {
+    padding:8px 14px; font-size:12px; color:var(--ink); cursor:pointer; text-align:center;
+  }
+  .login .lang-opt:hover { background:rgba(201,162,78,.15); color:var(--gold); }
+  /* 底部 🔒 VIP + Home Indicator（登录页 / 加载页 复用） */
+  .login .bottom-deco, .loading .bottom-deco {
+    margin-top:auto; padding:13px 0 5px; background:#111;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    color:#fff; font-size:12px; font-family:"Inter", system-ui, sans-serif;
+  }
+  .login .bottom-deco .lock, .loading .bottom-deco .lock { font-size:11px; }
+  .login .home-indicator, .loading .home-indicator {
+    width:134px; height:5px; background:#fff; border-radius:2.5px;
+    margin:0 auto; background:#111;
+    position:relative;
+  }
+  .login .home-indicator::after, .loading .home-indicator::after {
+    content:""; position:absolute; left:50%; bottom:6px; transform:translateX(-50%);
+    width:134px; height:5px; background:#fff; border-radius:2.5px; opacity:.9;
+  }
+  .login .audio-btn {
+    position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:50%;
+    background:rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; z-index:2;
+  }
+
+  /* ===== M2 选交收方案（/plan）===== */
+  .plan-bg {
+    flex:1; display:flex; flex-direction:column; padding:24px 16px;
+    background:linear-gradient(180deg,#1a1510 0%, #0f0b07 100%);
+    font-family:"PingFang SC", sans-serif;
+  }
+  .plan-title { text-align:center; padding:20px 0 28px; }
+  .plan-title h2 { color:var(--gold); font-size:22px; font-weight:600; margin-bottom:6px; letter-spacing:2px; }
+  .plan-title p { color:var(--ink-2); font-size:12px; }
+  /* M2 沿用现状（竖屏 H5 布局，对应 views/plan/index.tsx L201-296）
+     现状结构：header(title + 退出icon) / ul.list[li.list__item] / footer(button 进入游戏) */
+  .plan-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 4px 20px;
+  }
+  .plan-header .plan-title-text {
+    flex:1; text-align:center; font-size:20px; font-weight:600; letter-spacing:2px;
+    background:linear-gradient(to bottom, #f8eed3, #e9be71);
+    background-clip:text; -webkit-background-clip:text; color:transparent;
+  }
+  .plan-header .plan-exit {
+    width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+    color:var(--gold); font-size:16px; cursor:pointer; opacity:.85;
+  }
+  .plan-header .plan-exit:active { opacity:1; }
+
+  .plan-list { display:flex; flex-direction:column; gap:10px; }
+  /* 现状 list__item：横向行卡片，未选中淡色，选中描金 */
+  .plan-item {
+    padding:12px 14px; border-radius:10px; cursor:pointer;
+    background:rgba(60,55,50,.6);
+    border:1.5px solid rgba(255,255,255,.08);
+    transition:all .15s;
+  }
+  .plan-item.active {
+    background:linear-gradient(180deg, rgba(237,209,133,.12), rgba(232,189,112,.06));
+    border-color:#e8bd70;
+    box-shadow:0 0 0 1px rgba(232,189,112,.4) inset;
+  }
+  .plan-item .list-title {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .plan-item .currency-icon {
+    display:flex; align-items:center; gap:6px;
+    padding:4px 12px; border-radius:0 8px 0 14px;
+    background:rgba(232,189,112,.18); color:var(--ink-2);
+    font-size:13px; font-weight:500;
+  }
+  .plan-item.active .currency-icon {
+    background:linear-gradient(180deg, #edd185 30%, #dcae5a 55%, #e8bd70 90%, #edd185 100%);
+    color:#865308; text-shadow:0 1px 0 #ffffff8f;
+  }
+  .plan-item .currency-symbol { font-size:15px; font-weight:700; }
+  .plan-item .list-amount {
+    flex:1; text-align:right; color:#fff; font-size:18px; font-weight:700; letter-spacing:.5px;
+  }
+  .plan-item.active .list-amount { color:#ebc579; }
+  .plan-item .list-desc {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,.08);
+  }
+  .plan-item .list-ratio-parent { display:flex; gap:18px; }
+  .plan-item .list-ratio { display:flex; align-items:center; gap:6px; font-size:12px; }
+  .plan-item .list-ratio .label { color:var(--ink-3); }
+  .plan-item .list-ratio .value { color:#fff; font-weight:600; }
+  .plan-item.active .list-ratio .label { color:#ebc579; }
+  .plan-item.active .list-ratio .value { color:#fff; }
+  .plan-item .list-balance-label {
+    font-size:11px; color:var(--ink-3);
+  }
+  .plan-item.active .list-balance-label { color:#ebc579; }
+
+  .plan-footer {
+    margin-top:24px; padding:0 12px;
+  }
+  .plan-footer .plan-confirm-btn {
+    width:100%; height:44px; border-radius:22px; border:none; cursor:pointer;
+    background:linear-gradient(180deg, #edd185, #dcae5a);
+    color:#3a2a08; font-size:15px; font-weight:700; letter-spacing:2px;
+    box-shadow:0 4px 12px rgba(232,189,112,.25);
+  }
+  .plan-footer .plan-confirm-btn:disabled {
+    background:rgba(232,189,112,.25); color:rgba(58,42,8,.5);
+    cursor:not-allowed; box-shadow:none;
+  }
+  .plan-footer .plan-confirm-btn:not(:disabled):active { transform:translateY(1px); }
+  .plan-demo-toggle {
+    display:flex; align-items:center; gap:6px; margin-top:18px; padding:0 4px;
+    color:var(--ink-3); font-size:11px; cursor:pointer;
+  }
+  .plan-demo-toggle input { accent-color:var(--gold); }
+  /* 居中模态（用于 g-10021 冲突弹框、其他 dialog() 调用） */
+  .center-dialog {
+    position:absolute; inset:0; background:rgba(0,0,0,.6); z-index:300; display:none;
+    align-items:center; justify-content:center; padding:24px;
+  }
+  .center-dialog.open { display:flex; }
+  .center-dialog .cdbox {
+    background:var(--panel); border-radius:12px; width:100%; max-width:300px;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .center-dialog .cdhdr {
+    padding:16px; text-align:center; color:#fff; font-size:15px; font-weight:600;
+    border-bottom:1px solid var(--line);
+  }
+  .center-dialog .cdbody {
+    padding:18px 16px; color:var(--ink-2); font-size:13px; line-height:1.5; text-align:center;
+  }
+  .center-dialog .cdfoot {
+    display:flex; border-top:1px solid var(--line);
+  }
+  .center-dialog .cdfoot button {
+    flex:1; padding:12px; background:transparent; border:none; cursor:pointer;
+    color:var(--ink-2); font-size:14px;
+  }
+  .center-dialog .cdfoot button.primary { color:var(--gold); font-weight:600; }
+  .center-dialog .cdfoot button + button { border-left:1px solid var(--line); }
+  .plan-foot {
+    margin-top:auto; text-align:center; color:var(--ink-3); font-size:12px;
+    padding:14px 0; cursor:pointer;
+  }
+  .plan-foot:active { color:var(--gold); }
+
+  /* ===== G4 首屏加载页（Figma node 11869:110988）===== */
+  .loading {
+    flex:1; position:relative; display:flex; flex-direction:column;
+    font-family:"PingFang SC", -apple-system, "Microsoft YaHei", sans-serif;
+    background:
+      linear-gradient(179.3deg, rgba(27,20,14,0) 2%, rgb(26,21,15) 26%, rgb(26,21,15) 41%, rgb(19,16,14) 99%),
+      radial-gradient(ellipse at 50% 22%, rgba(201,162,78,.25), transparent 55%),
+      linear-gradient(180deg,#1a1510 0%, #0f0b07 60%, #050302 100%);
+  }
+  .loading .lg-brand {
+    display:flex; flex-direction:column; align-items:center; gap:0;
+    margin-top:38%; padding:0 14px;
+  }
+  .loading .lg-star {
+    width:90px; height:90px; display:flex; align-items:center; justify-content:center;
+    font-size:72px; color:var(--gold); text-shadow:0 0 24px rgba(201,162,78,.7);
+  }
+  .loading .lg-wordmark { display:flex; flex-direction:column; align-items:center; gap:2px; margin-top:-6px; }
+  .loading .lg-wordmark h1 { color:var(--gold); font-size:34px; letter-spacing:3px; font-weight:700; line-height:1; }
+  .loading .lg-wordmark p { color:var(--gold); font-size:11px; letter-spacing:6px; font-weight:500; opacity:.85; }
+  .loading .intro {
+    margin:44px auto 0; padding:0 15px; width:360px; max-width:calc(100% - 30px);
+    color:#fff; font-size:12px; line-height:22px; font-weight:300; text-align:center;
+  }
+  .loading .progress-wrap {
+    margin:40px auto 0; width:322px; display:flex; flex-direction:column; align-items:center; gap:20px;
+  }
+  .loading .pct {
+    color:#29ff37; font-size:14px; font-weight:400;
+  }
+  .loading .bar {
+    width:322px; height:10px; background:#322b20; border-radius:10px; position:relative; overflow:hidden;
+  }
+  .loading .bar .fill {
+    position:absolute; left:0; top:0; height:100%; width:30%;
+    background:linear-gradient(180deg, rgb(237,209,133), rgb(232,189,112));
+    border:1.5px solid #fff; border-radius:23px; box-shadow:0 4px 16px rgba(0,0,0,.24);
+    box-sizing:border-box;
+  }
+
+  /* ===== 单桌页（Figma node 11903:184490；产品层面不分模式，下注区分两页展示所有注项）===== */
+  .bet-video {
+    height:230px; background:linear-gradient(180deg,#0a1a2e,#1a3a5e); position:relative; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; color:var(--ink-3); font-size:14px;
+    overflow:hidden;
+  }
+  .bet-video::before { content:"📹 视频流（百家乐俯视桌台 + 虚拟 P/B 布局）"; color:var(--ink-3); opacity:.5; padding:0 20px; text-align:center; transform:scale(1); transition:transform .25s; }
+  .bet-video.zoomed::before { transform:scale(1.4); }
+  .bet-video.zoomed { background:radial-gradient(circle at center, rgba(0,80,40,.4), rgba(0,0,0,.85)); }
+  /* C8.1 自动缩放演示：on 时按 12s 周期模拟"投注 6s 缩小 / 停止投注 6s 放大查看牌型"；
+     实施时按 stop_bet_at + DeskStatusChange 事件驱动，不是定时器 */
+  .bet-video.auto-zoom-active::before { animation: autoZoomPhase 12s infinite; }
+  @keyframes autoZoomPhase {
+    0%, 49% { transform:scale(1); }
+    50%, 100% { transform:scale(1.4); }
+  }
+  /* 左上返回箭头（Figma 唯一左侧控件） */
+  .bet-video .btn-back {
+    position:absolute; top:8px; left:8px; width:32px; height:32px; border-radius:50%;
+    background:rgba(0,0,0,.5); color:#fff; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:16px; z-index:4;
+  }
+  .bet-video .btn-back .badge6 {
+    position:absolute; top:-2px; right:-2px; width:14px; height:14px; border-radius:50%;
+    background:var(--gold); color:#000; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center;
+  }
+  /* 右侧 icon 竖列 5 个：⚙设置 / 🎥 切桌 / 🎁 小费 / 🔍 视频缩放 / 🔄 刷新（Figma 视频右侧竖排）*/
+  .bet-video .right-icons {
+    position:absolute; top:12px; right:8px; display:flex; flex-direction:column; gap:12px; z-index:4;
+  }
+  .bet-video .right-icons .ic {
+    width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; cursor:pointer;
+    position:relative;
+  }
+  .bet-video .right-icons .ic.tip .dot {
+    position:absolute; top:-2px; right:-2px; min-width:14px; height:14px; border-radius:7px;
+    background:var(--red); color:#fff; font-size:9px; font-weight:700; padding:0 4px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  /* 中央倒计时 —— Figma 是绿色圆环（外圈环形进度 + 内显数字）*/
+  .bet-video .cd-big {
+    position:absolute; left:50%; top:42%; transform:translate(-50%, -50%);
+    font-size:28px; font-weight:700; color:#fff; font-family:"PingFang SC", sans-serif;
+    width:52px; height:52px; border-radius:50%; background:rgba(0,150,0,.5); border:3px solid #00c500;
+    display:flex; align-items:center; justify-content:center; z-index:3;
+  }
+  .bet-video .ic {
+    position:absolute; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px;
+    backdrop-filter:blur(4px);
+  }
+  .bet-video .ic-back { top:10px; left:10px; }
+  .bet-video .ic-zoom { bottom:10px; left:10px; }
+  .bet-video .ic-set { top:10px; right:10px; }
+  .bet-video .ic-vol { top:52px; right:10px; }
+  .bet-video .ic-tip { top:94px; right:10px; }
+  .bet-video .ic-switch { bottom:10px; right:10px; }
+
+  /* 视频下方桌台信息栏（Figma：桌号+ID 左 / Newport logo 中 / 限红+帮助 右） */
+  .desk-info {
+    display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--panel-2);
+    font-size:10px; color:var(--ink-2); flex-shrink:0; border-bottom:1px solid var(--line);
+    position:relative;
+  }
+  .desk-info .dinfo-left { display:flex; flex-direction:column; gap:2px; }
+  .desk-info b { color:#fff; font-size:12px; font-weight:500; }
+  /* Sammy 2026-04-27：桌信息栏中间显示当前桌所属场馆 logo（按 desk.club_id 自动显示，不可点击切换）
+     ⚠️ 资源说明：此处的场馆 logo 与 H5 大厅 Tab 的 figma/tabs/ logo 是**不同资源**，需 UI 单独出"桌信息栏专用 logo"
+     （当前原型暂用 tab-newport.png 作为视觉占位，最终需替换） */
+  .desk-info .dinfo-logo {
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    height:28px; opacity:.85; pointer-events:none;
+  }
+  .desk-info .dinfo-logo img { height:100%; width:auto; display:block; }
+  .desk-info .limit {
+    margin-left:auto; color:#fff; background:rgba(0,0,0,.4); padding:4px 10px; border-radius:14px;
+    font-size:11px; border:1px solid rgba(255,255,255,.15);
+  }
+  .desk-info .help {
+    width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,.08);
+    display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--ink-2);
+    border:1px solid rgba(255,255,255,.15); cursor:pointer;
+  }
+
+  /* 下注块底部 meta（👤人数 + 已下注金额） */
+  .bet-cell .bet-meta {
+    position:absolute; bottom:4px; left:6px; right:6px;
+    display:flex; justify-content:space-between; font-size:9px; color:rgba(255,255,255,.7);
+  }
+
+  /* 筹码栏下方页码指示器（· · · · 4 档筹码集预留，暂保留视觉） */
+  .chip-pager {
+    display:flex; justify-content:center; gap:4px; padding:4px 0; background:#0a0d12;
+  }
+  .chip-pager i { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.2); }
+  .chip-pager i.on { background:var(--gold); width:16px; border-radius:3px; }
+
+  /* 下注区分页（B9：上半部分翻页 / 下半部分庄闲常驻；支持触摸手势滑动）*/
+  .bet-area .bet-swipe { position:relative; touch-action:pan-y; }
+  .bet-area .bet-page { display:none; }
+  .bet-area .bet-page.active { display:block; }
+  /* 页签指示器：放在下注区顶部居中（"和"注区正上方），Sammy 2026-04-24 位置要求 */
+  .bet-area .bet-pager {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:4px 0 6px; z-index:5;
+    background:transparent;
+  }
+  .bet-area .bet-pager .arrow {
+    color:rgba(255,255,255,.5); font-size:14px; cursor:pointer; line-height:1; user-select:none;
+    padding:0 6px;
+  }
+  .bet-area .bet-pager .arrow:hover { color:var(--gold); }
+  .bet-area .bet-pager i {
+    width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.3); cursor:pointer;
+  }
+  .bet-area .bet-pager i.on { background:var(--gold); width:18px; border-radius:3px; }
+
+  /* 好路 💡 角标数字 */
+  .chip-luck .luck-num {
+    position:absolute; top:-4px; right:-4px; min-width:14px; height:14px; border-radius:7px;
+    background:var(--red); color:#fff; font-size:9px; font-weight:700; padding:0 3px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .chip-luck { position:relative; }
+
+  /* Win/Lose 右侧展开箭头 */
+  .data-row .wl-toggle {
+    position:absolute; right:10px; top:50%; transform:translateY(-50%);
+    width:28px; height:28px; border-radius:6px; background:rgba(255,255,255,.08);
+    display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--ink-2);
+    cursor:pointer; border:1px solid rgba(255,255,255,.15);
+  }
+  .data-row { position:relative; padding-right:48px; }
+  .data-row .stat .win { color:#29ff37; }
+
+  /* M4 投注台（Figma node 11903:185008 390×341；对应下注 Page 1 / Page 2 共用布局）
+     布局：上排 闲对/和/庄对 + 中排 闲/庄 + 下排 老虎 Lucky6 */
+  .bet-area {
+    flex:1; background:linear-gradient(180deg,#0c2a1a,#081f12); position:relative; overflow:hidden;
+    padding:8px; display:flex; flex-direction:column; gap:6px;
+  }
+  .bet-area .pager { display:flex; justify-content:center; gap:4px; }
+  .bet-area .pager i { width:6px; height:6px; border-radius:50%; background:var(--ink-3); }
+  .bet-area .pager i.active { background:var(--gold); }
+
+  /* 上排 3 栏：闲对 PlayerPair / 和 Tie / 庄对 BankerPair */
+  .bet-row.row-top {
+    display:grid; grid-template-columns:131fr 112fr 131fr; gap:8px; height:90px;
+  }
+  /* 中排 2 栏：闲 Player / 庄 Banker（大色块） */
+  .bet-row.row-main {
+    display:grid; grid-template-columns:1fr 1fr; gap:8px; height:90px;
+  }
+  /* 下排 1 栏：老虎 Lucky6 */
+  .bet-row.row-lucky { height:62px; }
+
+  .bet-cell {
+    position:relative; border-radius:4px; cursor:pointer; overflow:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    font-family:"PingFang SC", sans-serif;
+  }
+  .bet-cell .zh { font-size:16px; font-weight:500; color:#fff; line-height:1; }
+  .bet-cell .en { font-size:10px; color:rgba(255,255,255,.75); letter-spacing:.3px; }
+  .bet-cell .odds { font-size:14px; color:#fff; font-weight:500; margin-top:2px; }
+
+  /* 颜色（Figma 稿 Banker 红系 / Player 蓝系 / Tie 绿系，对子带 mask group 背景） */
+  .bet-cell.pair-p { background:linear-gradient(135deg, rgba(0,131,255,.3), rgba(0,131,255,.15)); border:1px solid rgba(0,131,255,.4); }
+  .bet-cell.pair-b { background:linear-gradient(135deg, rgba(255,25,33,.3), rgba(255,25,33,.15)); border:1px solid rgba(255,25,33,.4); }
+  .bet-cell.tie    { background:linear-gradient(135deg, rgba(0,197,0,.35), rgba(0,197,0,.15)); border:1px solid rgba(0,197,0,.5); }
+  .bet-cell.player { background:linear-gradient(135deg, rgba(0,131,255,.45), rgba(0,131,255,.2)); border:1px solid rgba(0,131,255,.6); }
+  .bet-cell.banker { background:linear-gradient(135deg, rgba(255,25,33,.45), rgba(255,25,33,.2)); border:1px solid rgba(255,25,33,.6); }
+  .bet-cell.lucky  { background:linear-gradient(135deg, rgba(255,102,25,.3), rgba(255,102,25,.15)); border:1px solid rgba(255,102,25,.5); }
+
+  /* 赔率居左上角 */
+  .bet-cell .odds-label { position:absolute; top:4px; left:6px; font-size:10px; color:rgba(255,255,255,.6); }
+
+  .central-status {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:54px; height:54px; border-radius:50%; background:rgba(0,0,0,.7); border:2px solid var(--gold);
+    display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:var(--gold);
+    z-index:5;
+  }
+
+  /* 操作栏 取消/重复/确定（Figma btn_cancel 125×32）*/
+  .ops {
+    display:flex; gap:8px; padding:8px; background:var(--panel-2); flex-shrink:0;
+  }
+  .ops button {
+    flex:1; height:32px; border-radius:16px; font-size:13px; cursor:pointer;
+    background:rgba(0,0,0,.4); color:#fff; border:1px solid rgba(255,255,255,.2);
+    font-family:"PingFang SC", sans-serif;
+  }
+  .ops button.ok {
+    background:linear-gradient(180deg, rgb(237,209,133), rgb(232,189,112));
+    color:#492c00; border:1.5px solid #fff; font-weight:600;
+  }
+
+  /* 筹码栏（Figma y:549-601 52 高）*/
+  .chip-bar {
+    display:flex; gap:6px; padding:6px 8px; background:#0a0d12; overflow-x:auto;
+    flex-shrink:0; align-items:center;
+  }
+  .chip-bar::-webkit-scrollbar { display:none; }
+  .chip-set, .chip-luck {
+    width:32px; height:32px; border-radius:8px; flex-shrink:0;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+    display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;
+    color:#eed38d;
+  }
+  .chip-luck { margin-left:auto; }
+  .chip {
+    width:40px; height:40px; border-radius:50%; flex-shrink:0;
+    background:radial-gradient(circle, #c9a24e, #8b6f2f); color:#fff; font-weight:600; font-size:11px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px dashed rgba(255,255,255,.3);
+  }
+  .chip.active { border-color:#fff; box-shadow:0 0 0 2px var(--gold), 0 0 12px var(--gold); transform:translateY(-3px); }
+  .bet-cell.bet-hit { box-shadow:0 0 0 2px #fff, 0 0 16px var(--gold); transform:scale(.97); }
+  .bet-cell { transition:transform .15s, box-shadow .15s; }
+  .chip.green { background:radial-gradient(circle, var(--green), #1d5a3a); }
+  .chip.blue { background:radial-gradient(circle, var(--blue), #1a3f72); }
+  .chip.red { background:radial-gradient(circle, var(--red), #7a2420); }
+  .chip.purple { background:radial-gradient(circle, #9b59b6, #4a2a5e); }
+
+  /* Balance / Bet / Win-Lose 三栏（Figma 统计栏）*/
+  .data-row {
+    display:flex; padding:8px 12px; background:var(--panel-2); flex-shrink:0;
+    font-family:"PingFang SC", sans-serif; border-top:1px solid var(--line);
+  }
+  .data-row .stat {
+    flex:1; display:flex; flex-direction:column; gap:2px; align-items:flex-start;
+  }
+  .data-row .stat label { font-size:10px; color:var(--ink-3); }
+  .data-row .stat b { font-size:13px; color:#fff; font-weight:500; }
+
+  .road-area {
+    height:90px; background:#0a0d12; border-top:1px solid var(--line); flex-shrink:0;
+    display:grid; grid-template-columns:50px 1fr; gap:2px; padding:2px;
+  }
+  .road-area .pearl { background:#0a0d12; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; }
+  .road-area .pearl i { display:block; border-radius:50%; background:var(--red); opacity:.7; }
+  .road-area .pearl i:nth-child(2n) { background:var(--blue); }
+  .road-area .pearl i:nth-child(7n) { background:var(--green); }
+  .road-area .bigroad { background:#0a0d12; display:grid; grid-template-columns:repeat(20,1fr); grid-template-rows:repeat(6,1fr); gap:1px; }
+  .road-area .bigroad i { border-radius:50%; background:var(--red); opacity:.8; }
+  .road-area .bigroad i:nth-child(3n){ background:var(--blue); }
+  .road-area .bigroad i:nth-child(11n){ background:transparent; }
+
+  .bottom-stats {
+    display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--panel-2); flex-shrink:0;
+    font-size:11px; color:var(--ink-2); border-top:1px solid var(--line);
+  }
+  .bottom-stats b { color:var(--ink); }
+  .bottom-stats .ask { margin-left:auto; display:flex; gap:4px; }
+  .bottom-stats .ask .a {
+    padding:3px 10px; border-radius:12px; font-size:10px; cursor:pointer;
+  }
+  .bottom-stats .ask .ab { background:var(--red); color:#fff; }
+  .bottom-stats .ask .ap { background:var(--blue); color:#fff; }
+
+  /* ===== 多桌页 ===== */
+  .multi-list {
+    flex:1; overflow-y:auto; padding:8px 12px;
+  }
+  .mcard {
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:8px;
+    margin-bottom:8px;
+  }
+  .mcard .mtop {
+    display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-2); margin-bottom:6px;
+  }
+  .mcard .mtop b { color:var(--ink); }
+  .mcard .mtop .cd { background:var(--green); color:#fff; padding:1px 6px; border-radius:4px; font-size:10px; }
+  .mcard .mtop .vid { margin-left:auto; background:var(--panel-2); border:1px solid var(--line); padding:2px 8px; border-radius:4px; cursor:pointer; font-size:10px; }
+  .mcard .mtop .limit { background:var(--panel-2); padding:2px 6px; border-radius:4px; font-size:10px; color:var(--gold); }
+  .mcard .mmid {
+    display:grid; grid-template-columns:60px 1fr 100px; gap:4px; height:72px; margin-bottom:6px;
+  }
+  .mcard .mmid .pearl {
+    background:#0a0d12; border-radius:4px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; padding:2px;
+  }
+  .mcard .mmid .pearl i { border-radius:50%; background:var(--red); opacity:.7; }
+  .mcard .mmid .pearl i:nth-child(2n){ background:var(--blue); }
+  .mcard .mmid .bigroad {
+    background:#0a0d12; border-radius:4px; display:grid; grid-template-columns:repeat(12,1fr); grid-template-rows:repeat(6,1fr); gap:1px; padding:2px; position:relative;
+  }
+  .mcard .mmid .bigroad i { border-radius:50%; background:var(--red); opacity:.8; }
+  .mcard .mmid .bigroad i:nth-child(3n){ background:var(--blue); }
+  .mcard .mmid .bigroad i:nth-child(11n){ background:transparent; }
+  .mcard .mmid .bigroad .roadtag { position:absolute; bottom:2px; right:2px; font-size:9px; color:var(--gold); background:rgba(0,0,0,.6); padding:1px 4px; border-radius:3px; }
+  .mcard .mmid .bets { display:flex; flex-direction:column; gap:2px; }
+  .mcard .mmid .bets .bc {
+    flex:1; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:3px;
+    display:flex; align-items:center; justify-content:center; font-size:9px;
+  }
+  .mcard .mmid .bets .bc.banker { border-color:var(--red); color:#ff8080; }
+  .mcard .mmid .bets .bc.player { border-color:var(--blue); color:#8bb8ff; }
+  .mcard .mbot {
+    display:flex; align-items:center; gap:8px; font-size:10px; color:var(--ink-2); padding-top:6px; border-top:1px solid var(--line);
+  }
+  .mcard .mbot b { color:var(--ink); }
+  .mcard .mbot .lock { margin-left:auto; cursor:pointer; }
+  .mcard .mbot .enter { background:var(--gold); color:#000; padding:2px 8px; border-radius:4px; font-size:10px; cursor:pointer; font-weight:600; }
+
+  /* ===== 设置抽屉 (BottomSheet) ===== */
+  .mask {
+    position:absolute; inset:0; background:rgba(0,0,0,.5); z-index:100; display:none;
+  }
+  .mask.open { display:block; }
+  .bottom-sheet {
+    position:absolute; left:0; right:0; bottom:0; background:var(--panel); z-index:110;
+    border-radius:16px 16px 0 0; transform:translateY(100%); transition:transform .3s;
+    max-height:70%; overflow:hidden; display:flex; flex-direction:column;
+  }
+  .bottom-sheet.open { transform:translateY(0); }
+  .bottom-sheet .bs-hdr {
+    display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line);
+  }
+  .bottom-sheet .bs-hdr h3 { font-size:15px; font-weight:600; }
+  .bottom-sheet .bs-hdr .close { cursor:pointer; font-size:18px; color:var(--ink-2); }
+  .bottom-sheet .bs-body { flex:1; overflow-y:auto; padding:12px 0; }
+
+  /* B5 小费打赏抽屉 */
+  #drawer-tip .tip-hdr {
+    display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line);
+  }
+  #drawer-tip .tip-amount {
+    flex:1; display:flex; align-items:baseline; gap:4px;
+    color:var(--gold); font-family:"PingFang SC", sans-serif;
+  }
+  #drawer-tip .tip-currency { font-size:18px; }
+  #drawer-tip .tip-value { font-size:28px; font-weight:700; letter-spacing:1px; }
+  #drawer-tip .tip-confirm {
+    background:linear-gradient(180deg,#4f8af6,#2d6bd5); color:#fff; border:none;
+    padding:8px 20px; border-radius:16px; font-size:14px; font-weight:600; cursor:pointer;
+  }
+  #drawer-tip .tip-chips {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:12px 16px 20px;
+  }
+  #drawer-tip .tc {
+    height:48px; border-radius:50%; background:radial-gradient(circle,#c9a24e,#8b6f2f);
+    color:#fff; font-weight:600; font-size:13px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; border:2px dashed rgba(255,255,255,.4);
+  }
+  #drawer-tip .tc:active { transform:scale(.95); }
+  #drawer-tip .tc.reset { background:var(--panel-2); border:1px solid var(--line); color:var(--ink-2); font-size:11px; }
+
+  /* B3 / B7 侧拉抽屉（从右侧滑入，覆盖右半屏） */
+  .side-drawer {
+    position:absolute; right:-70%; top:0; width:70%; height:100%;
+    background:var(--panel); z-index:110; transition:right .3s;
+    display:flex; flex-direction:column; box-shadow:-4px 0 16px rgba(0,0,0,.6);
+  }
+  .side-drawer.open { right:0; }
+  .side-drawer .sd-hdr {
+    display:flex; align-items:center; gap:8px; padding:14px 14px;
+    border-bottom:1px solid var(--line);
+  }
+  .side-drawer .sd-hdr h3 { flex:1; font-size:15px; font-weight:600; color:#fff; }
+  .side-drawer .sd-hdr .sd-sub { color:var(--gold); font-size:12px; }
+  .side-drawer .sd-hdr .close { cursor:pointer; font-size:18px; color:var(--ink-2); margin-left:8px; }
+  .side-drawer .sd-body { flex:1; overflow-y:auto; padding:8px 0; }
+  .side-drawer .sd-tab-row {
+    display:flex; gap:6px; padding:0 12px 8px; overflow-x:auto;
+  }
+  .side-drawer .sd-tab {
+    padding:4px 10px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    font-size:11px; white-space:nowrap; cursor:pointer; color:var(--ink-2);
+  }
+  .side-drawer .sd-tab.active { background:var(--gold); color:#000; border-color:var(--gold); }
+  .side-drawer .sd-list { display:flex; flex-direction:column; }
+  .side-drawer .sd-item {
+    padding:12px 14px; border-bottom:1px solid var(--line); cursor:pointer;
+  }
+  .side-drawer .sd-item.current { background:rgba(201,162,78,.1); border-left:3px solid var(--gold); }
+  .side-drawer .sd-item .sd-t { color:#fff; font-size:13px; font-weight:500; margin-bottom:2px; }
+  .side-drawer .sd-item .sd-s { color:var(--ink-2); font-size:10px; }
+
+  /* B7 好路侧拉卡片 */
+  .luck-list { display:flex; flex-direction:column; padding:0 10px; gap:10px; }
+  .luck-item {
+    padding:10px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; cursor:pointer;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .luck-item .luck-head { display:flex; justify-content:space-between; align-items:center; }
+  .luck-item .luck-name { color:#fff; font-size:13px; font-weight:600; }
+  .luck-item .luck-cd {
+    width:24px; height:24px; border-radius:50%; border:2px solid #00c500;
+    background:rgba(0,0,0,.5); color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700;
+  }
+  .luck-item .luck-cd.red { border-color:#ff1921; }
+  .luck-item .luck-road-small {
+    display:grid; grid-template-columns:repeat(6,1fr); gap:2px;
+    background:#fff; padding:4px; border-radius:4px; height:28px;
+  }
+  .luck-item .luck-road-small i { width:100%; height:100%; border-radius:50%; border:1px solid transparent; box-sizing:border-box; }
+  .luck-item .luck-road-small i.r { border-color:#ff1921; }
+  .luck-item .luck-road-small i.b { border-color:#0083ff; }
+  .luck-item .luck-tag { color:var(--gold); font-size:11px; }
+  .luck-item .luck-quick { display:flex; gap:6px; align-items:center; }
+  .luck-item .qb {
+    padding:4px 10px; border-radius:4px; font-size:11px; color:#fff; border:none; cursor:pointer;
+  }
+  .luck-item .qb.banker { background:#ff1921; }
+  .luck-item .qb.player { background:#0083ff; }
+  .luck-item .enter { margin-left:auto; color:var(--gold); font-size:11px; }
+
+  /* 玩法资讯弹窗 */
+  /* gameplay dialog 全宽（删除 max-width:340 — 之前误窄，右边露空） */
+  .dialog .odds-table, .dialog .rule-table {
+    width:100%; border-collapse:collapse; margin-bottom:12px;
+  }
+  .dialog .odds-table th, .dialog .odds-table td,
+  .dialog .rule-table th, .dialog .rule-table td {
+    padding:8px 10px; border-bottom:1px solid var(--line); font-size:12px;
+    text-align:left; color:var(--ink);
+  }
+  .dialog .odds-table th, .dialog .rule-table th {
+    background:rgba(255,255,255,.03); font-weight:500; color:var(--ink-2);
+  }
+  .dialog .odds-table td:last-child, .dialog .rule-table td:last-child { color:var(--gold); font-weight:500; }
+  .dialog .rule-table.small th, .dialog .rule-table.small td { padding:6px 8px; font-size:11px; }
+  /* 视频源设置（画质 + 线路） */
+  .dialog .video-quality-list {
+    display:flex; flex-direction:column; gap:8px; margin-bottom:16px;
+  }
+  .dialog .video-quality-list .vq-item {
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:6px;
+    cursor:pointer; color:var(--ink);
+  }
+  .dialog .video-quality-list .vq-item.active {
+    border-color:var(--gold); background:rgba(201,162,78,.12); color:var(--gold);
+  }
+  .dialog .video-quality-list .vq-icon { font-size:14px; flex-shrink:0; }
+  .dialog .video-quality-list .vq-name { flex:1; font-size:13px; }
+  .dialog .video-quality-list .vq-check { color:var(--gold); font-weight:700; opacity:0; }
+  .dialog .video-quality-list .vq-item.active .vq-check { opacity:1; }
+
+  .dialog .game-intro {
+    color:var(--ink); font-size:12px; line-height:1.7; margin-bottom:12px;
+    padding:0 2px; text-indent:2em;
+  }
+  .dialog .game-intro b { color:var(--gold); font-weight:500; }
+
+  /* B11 开牌动画 */
+  #dlg-flip .flip-box {
+    width:90%; max-width:340px; background:linear-gradient(180deg,#1a1d24,#0a0d12);
+    border:2px solid var(--gold); border-radius:16px; padding:16px;
+    display:flex; flex-direction:column; gap:16px; color:#fff;
+    animation:flip-bounce .5s ease;
+  }
+  @keyframes flip-bounce { 0%{transform:scale(.6);opacity:0} 80%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+  #dlg-flip .flip-banner {
+    text-align:center; padding:12px; border-radius:8px;
+    background:linear-gradient(90deg,#0083ff,#4f8af6); color:#fff;
+  }
+  #dlg-flip .flip-banner .flip-cn { font-size:24px; font-weight:700; letter-spacing:4px; }
+  #dlg-flip .flip-banner .flip-en { display:block; font-size:11px; letter-spacing:3px; opacity:.9; margin-top:2px; }
+  #dlg-flip .flip-result {
+    display:flex; align-items:center; justify-content:space-around; gap:10px;
+  }
+  #dlg-flip .flip-side { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; }
+  #dlg-flip .flip-label { font-size:11px; color:var(--ink-2); letter-spacing:2px; }
+  #dlg-flip .flip-cards { display:flex; gap:6px; }
+  #dlg-flip .flip-card {
+    width:40px; height:56px; background:#fff; color:#000; border-radius:6px;
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;
+    text-align:center; line-height:1.1; border:1px solid #ccc;
+    box-shadow:0 2px 6px rgba(0,0,0,.3);
+  }
+  #dlg-flip .flip-point {
+    font-size:26px; font-weight:700; color:var(--gold); margin-top:4px;
+  }
+  #dlg-flip .flip-vs {
+    font-size:18px; font-weight:700; color:var(--red); letter-spacing:2px;
+  }
+  #dlg-flip .flip-close {
+    background:transparent; border:1px solid var(--line); color:var(--ink-2);
+    padding:6px; border-radius:6px; font-size:11px; cursor:pointer;
+  }
+
+  /* C3 游戏记录抽屉 */
+  /* 栈式：从 settings 内打开时需覆盖父抽屉，z-index 130 > settings 的 110；
+     从 Header 直接打开时也用 130，mask 100 在下面，无害 */
+  #drawer-record, #drawer-tip { z-index:130; }
+  /* Sammy 2026-04-27：所有"系统设置子级"弹窗强制 70%（栈式子级视觉一致） */
+  #drawer-settings, #drawer-record { height:70%; max-height:70%; }
+  #dlg-gameplay .dbox, #dlg-road .dbox,
+  #dlg-chip .dbox, #dlg-music .dbox, #dlg-video .dbox,
+  #dlg-table-limit .dbox { height:70%; max-height:70%; }
+  #drawer-record .bs-hdr h3 { color:#eed38d; }
+  #drawer-record .bs-hdr .close { color:#eed38d; font-size:20px; }
+  #drawer-record .record-warn {
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:10px; color:#ff4646; font-size:12px; background:rgba(255,70,70,.06);
+  }
+  #drawer-record .record-warn::before {
+    content:"⚠"; font-size:13px;
+  }
+  #drawer-record .bs-body { padding:0; }
+  #drawer-record table {
+    width:100%; border-collapse:collapse; font-family:"PingFang SC", sans-serif; font-size:11px;
+  }
+  #drawer-record thead th {
+    padding:10px 4px; text-align:left; color:#b8b8b8; font-weight:400;
+    background:rgba(255,255,255,.04); border-bottom:1px solid var(--line);
+    white-space:nowrap; font-size:11px;
+  }
+  #drawer-record tbody td {
+    padding:12px 4px; color:#fff; border-bottom:1px solid var(--line);
+    white-space:nowrap; font-size:11px;
+  }
+  #drawer-record tbody td.time { color:#b8b8b8; }
+  #drawer-record tbody td .stat-ok { color:#00c500; }
+  #drawer-record tbody td .stat-cancel { color:#ff4646; }
+  #drawer-record tbody td .view { color:#eed38d; cursor:pointer; }
+  #drawer-record tbody td .result { color:#ffba33; }
+  #drawer-record tbody td .pl-neg { color:#ff4646; }
+  #drawer-record tbody td .pl-zero { color:#b8b8b8; }
+  #drawer-record tbody td.bet-content { font-weight:500; }
+  #drawer-record tbody td.amount { font-weight:500; }
+  /* 列首单元格左 padding */
+  #drawer-record th:first-child, #drawer-record td:first-child { padding-left:12px; }
+  #drawer-record th:last-child, #drawer-record td:last-child { padding-right:12px; }
+
+  /* 底部统计栏（总上下数 + 导出按钮） */
+  #drawer-record .record-foot {
+    flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; background:rgba(0,0,0,.3); border-top:1px solid var(--line);
+  }
+  #drawer-record .record-foot .total {
+    color:#b8b8b8; font-size:13px; display:flex; align-items:center; gap:10px;
+  }
+  #drawer-record .record-foot .total b { color:#ff4646; font-size:14px; font-weight:500; }
+  #drawer-record .record-foot .export {
+    background:linear-gradient(180deg, rgb(237,209,133), rgb(232,189,112));
+    color:#492c00; border:none; padding:8px 20px; border-radius:16px;
+    font-size:13px; font-weight:600; cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px;
+  }
+
+  .quick-3 {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:0 16px 12px;
+  }
+  .quick-3 .qcard {
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
+    padding:14px 8px; text-align:center; cursor:pointer;
+  }
+  .quick-3 .qcard .qi { font-size:20px; margin-bottom:4px; }
+  .quick-3 .qcard .ql { font-size:11px; color:var(--ink-2); }
+
+  .menu-list { padding:0; }
+  .menu-list .mi {
+    display:flex; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); cursor:pointer;
+  }
+  .menu-list .mi:active { background:var(--panel-2); }
+  .menu-list .mi .mic { width:24px; text-align:center; margin-right:12px; color:var(--gold); }
+  .menu-list .mi .ml { flex:1; font-size:14px; }
+  .menu-list .mi .mr { color:var(--ink-3); font-size:12px; }
+  .menu-list .mi.danger .ml { color:var(--red); }
+
+  /* ===== 子弹窗 (在抽屉之上) ===== */
+  .dialog {
+    position:absolute; inset:0; background:rgba(0,0,0,.6); z-index:200; display:none;
+    align-items:flex-end;
+  }
+  .dialog.open { display:flex; }
+  .dialog .dbox {
+    background:var(--panel); width:100%; border-radius:16px 16px 0 0; max-height:85%;
+    display:flex; flex-direction:column;
+    /* Sammy 2026-04-27：抽屉式滑入动画（和 .bottom-sheet 一致） */
+    transform:translateY(100%); transition:transform .3s ease;
+  }
+  .dialog.open.anim .dbox { transform:translateY(0); }
+  .dialog .dhdr {
+    display:flex; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line);
+  }
+  .dialog .dhdr .close { font-size:18px; cursor:pointer; color:var(--ink-2); }
+  .dialog .dhdr h3 { flex:1; text-align:center; font-size:15px; }
+  .dialog .dhdr .save { color:var(--gold); cursor:pointer; font-weight:600; font-size:13px; }
+  .dialog .dbody { flex:1; overflow-y:auto; padding:16px; }
+
+  /* C7 筹码设置（Sammy 2026-04-27：回归现状 2 选 1）*/
+  .chip-style-row {
+    display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;
+  }
+  .chip-style-row .cs {
+    background:var(--panel-2); border:2px solid var(--line); border-radius:8px; padding:14px;
+    text-align:center; cursor:pointer;
+    display:flex; flex-direction:column; gap:10px; align-items:center;
+  }
+  .chip-style-row .cs.active { border-color:var(--gold); }
+  .chip-style-row .cs.active .cs-label { color:var(--gold); }
+  .cs-preview { display:flex; gap:4px; justify-content:center; }
+  .cs-label { font-size:12px; color:var(--ink); }
+  /* 简化的筹码预览（现状代码用 png 图片，原型用 CSS 模拟视觉） */
+  .chip-preview {
+    width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; font-weight:600; color:#fff;
+    border:2px dashed rgba(255,255,255,.6);
+  }
+  .chip-preview.c-3 { background:radial-gradient(circle,#5599dd,#1a3f72); }
+  .chip-preview.c-4 { background:radial-gradient(circle,#c9a24e,#8b6f2f); }
+  .chip-preview.c-5 { background:radial-gradient(circle,#cc4444,#7a2020); }
+  .chip-preview.c-6 { background:radial-gradient(circle,#4caf50,#1b5e20); }
+  /* 数字 vs 缩写两种风格的 placeholder（现状是不同的 png 图集） */
+  .chip-preview.chip-num::after { content:""; }
+  .chip-preview.chip-abbr { font-style:italic; }
+
+  /* 常用筹码选择（Sammy 2026-04-27 Q23：合并现状 menu-bar.tsx 自定筹码） */
+  .custom-chips-grid {
+    display:grid; grid-template-columns:repeat(6, 1fr); gap:8px; margin-bottom:8px;
+  }
+  .custom-chips-grid .cc {
+    position:relative;
+    aspect-ratio:1;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:50%; background:var(--panel-2);
+    border:2px solid var(--line);
+    font-size:10px; font-weight:600; color:var(--ink-2);
+    cursor:pointer;
+  }
+  .custom-chips-grid .cc.selected {
+    border-color:var(--gold);
+    background:radial-gradient(circle,#c9a24e,#8b6f2f);
+    color:#fff;
+  }
+  .custom-chips-grid .cc .check {
+    position:absolute; top:-2px; right:-2px;
+    width:14px; height:14px; border-radius:50%;
+    background:var(--gold); color:#000;
+    font-size:9px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--bg);
+  }
+
+  /* 自定义筹码输入行 */
+  .chip-custom-row {
+    display:flex; gap:8px; margin-bottom:16px;
+  }
+  .chip-custom-row input {
+    flex:1; padding:8px 12px; background:var(--panel-2); color:#fff;
+    border:1px solid var(--line); border-radius:6px; font-size:13px; outline:none;
+  }
+  .chip-custom-row input:focus { border-color:var(--gold); }
+  .chip-custom-row button {
+    padding:8px 16px; background:var(--gold); color:#000; border:none;
+    border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .chip-custom-row button:active { opacity:.8; }
+
+  .hint { color:var(--ink-3); font-size:10px; margin-left:6px; }
+  .hint.small { font-size:10px; color:var(--ink-3); margin:4px 0 14px; display:block; }
+
+  .section-title { font-size:12px; color:var(--ink-2); margin-bottom:8px; }
+
+  /* C9 音乐设置 */
+  .sound-row {
+    display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid var(--line);
+  }
+  .sound-row .sl { flex:1; font-size:14px; }
+  .sound-row input[type=range] { flex:2; }
+  .toggle {
+    width:40px; height:22px; background:var(--line); border-radius:11px; position:relative;
+    cursor:pointer; transition:background .2s; flex-shrink:0;
+  }
+  .toggle::after {
+    content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+    background:#fff; transition:transform .2s;
+  }
+  .toggle.on { background:var(--gold); }
+  .toggle.on::after { transform:translateX(18px); }
+
+  /* C8.1 自动缩放设置行（视频源设置 dialog 内）*/
+  .auto-zoom-row {
+    display:flex; align-items:center; gap:12px; padding:10px 16px;
+    border-radius:8px; background:rgba(255,255,255,.03);
+  }
+  .auto-zoom-row .az-text { flex:1; min-width:0; }
+  .auto-zoom-row .az-name { font-size:14px; color:var(--ink); margin-bottom:4px; }
+  .auto-zoom-row .az-desc { font-size:11px; color:var(--ink-2); line-height:1.4; }
+
+  /* C12 好路设置 */
+  .road-grid {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;
+  }
+  .road-card {
+    background:var(--panel-2); border:2px solid var(--line); border-radius:8px; padding:8px;
+    cursor:pointer; position:relative;
+  }
+  .road-card.selected { border-color:var(--gold); }
+  .road-card .check {
+    position:absolute; top:4px; left:4px; width:14px; height:14px; border-radius:3px;
+    border:1px solid var(--ink-3); background:transparent;
+  }
+  .road-card.selected .check { background:var(--gold); border-color:var(--gold); }
+  .road-card .rname { font-size:11px; text-align:center; margin-bottom:4px; color:var(--ink-2); }
+  .road-card.selected .rname { color:var(--ink); }
+  .road-card .mini {
+    height:32px; background:#0a0d12; border-radius:4px;
+    display:grid; grid-template-columns:repeat(6,1fr); gap:1px; padding:2px;
+  }
+  .road-card .mini i { border-radius:50%; background:var(--red); opacity:.7; }
+  .road-card .mini i:nth-child(odd){ background:var(--blue); }
+
+  /* ===== 二级页（大厅设置 / 安全设置 / 投注方式 / 语言设置）===== */
+  /* Sammy 2026-04-27：从全屏 push 改为底部抽屉风格 70% + 滑入动画（和其他子级一致） */
+  .sub-page {
+    position:absolute; left:0; right:0; bottom:0; height:70%;
+    background:var(--panel); z-index:150;
+    border-radius:16px 16px 0 0;
+    display:flex; flex-direction:column;
+    transform:translateY(100%); transition:transform .3s ease;
+    visibility:hidden;
+  }
+  .sub-page.open { visibility:visible; }
+  .sub-page.open.anim { transform:translateY(0); }
+  .sub-page .sp-hdr {
+    display:flex; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line);
+  }
+  .sub-page .sp-hdr .back { cursor:pointer; font-size:18px; margin-right:12px; }
+  .sub-page .sp-hdr h3 { font-size:15px; font-weight:600; }
+  .sub-page .sp-body { flex:1; overflow-y:auto; padding:8px 0; }
+
+  /* 游戏模式选项 */
+  .sub-page .gm-opt {
+    display:flex; align-items:center; gap:12px; padding:16px 20px;
+    border-bottom:1px solid var(--line); cursor:pointer;
+    font-family:"PingFang SC", sans-serif;
+  }
+  .sub-page .gm-opt:active { background:rgba(255,255,255,.04); }
+  .sub-page .gm-opt.active { background:rgba(201,162,78,.08); }
+  .sub-page .gm-main { flex:1; display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .sub-page .gm-name {
+    font-size:15px; color:#fff; font-weight:500;
+    display:flex; align-items:center; gap:8px;
+  }
+  .sub-page .gm-opt.active .gm-name { color:var(--gold); }
+  .sub-page .gm-desc { font-size:11px; color:var(--ink-2); line-height:1.5; }
+  .sub-page .gm-badge {
+    background:var(--gold); color:#000; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:600;
+  }
+  .sub-page .gm-badge.gm-coming { background:var(--ink-3); color:#fff; }
+  .sub-page .gm-check { color:var(--gold); font-size:18px; font-weight:700; opacity:0; }
+  .sub-page .gm-opt.active .gm-check { opacity:1; }
+  .sub-page .gm-tip {
+    display:flex; gap:6px; padding:12px 16px; margin:16px 12px;
+    background:rgba(79,138,246,.08); border:1px solid rgba(79,138,246,.3);
+    border-radius:6px; font-size:11px; color:var(--ink-2); line-height:1.5;
+  }
+
+  /* 语言选项行 */
+  .sub-page .lang-opt-row {
+    display:flex; align-items:center; gap:12px; padding:16px 20px;
+    border-bottom:1px solid var(--line); cursor:pointer; font-family:"PingFang SC", sans-serif;
+  }
+  .sub-page .lang-opt-row .lang-flag { font-size:22px; line-height:1; }
+  .sub-page .lang-opt-row .lang-name { flex:1; font-size:15px; color:#fff; }
+  .sub-page .lang-opt-row .lang-check {
+    color:var(--gold); font-size:18px; font-weight:700; opacity:0;
+  }
+  .sub-page .lang-opt-row.active .lang-check { opacity:1; }
+  .sub-page .lang-opt-row.active .lang-name { color:var(--gold); }
+  .sub-page .lang-opt-row:active { background:rgba(255,255,255,.04); }
+  .sub-page .settings-row {
+    display:flex; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line);
+  }
+  .sub-page .settings-row .rl { flex:1; font-size:14px; }
+
+  /* ===== 浮动标签（注释） ===== */
+  .anno {
+    position:absolute; background:rgba(74,158,255,.95); color:#fff; font-size:10px;
+    padding:2px 6px; border-radius:4px; pointer-events:none; z-index:50; white-space:nowrap;
+    border:1px solid rgba(255,255,255,.3);
+  }
+  .toggle-anno {
+    position:fixed; bottom:12px; right:12px; z-index:9999; background:var(--panel);
+    color:var(--ink); border:1px solid var(--line); padding:6px 12px; border-radius:6px;
+    cursor:pointer; font-size:12px;
+  }
+  .toggle-figma {
+    position:fixed; bottom:52px; right:12px; z-index:9999; background:var(--panel);
+    color:var(--gold); border:1px solid var(--gold); padding:6px 12px; border-radius:6px;
+    cursor:pointer; font-size:12px;
+  }
+  /* 场景演示栏（左侧纵列，在页面切换下方）*/
+  .demo-bar {
+    position:fixed; top:88px; left:12px; z-index:9999;
+    display:flex; flex-direction:column; gap:4px; max-width:140px;
+    background:rgba(20,24,32,.95); border:1px solid var(--line); border-radius:8px; padding:8px;
+    font-size:10px;
+  }
+
+  /* Sammy 2026-04-27：屏幕内的"演示分流/演示开关"挪到手机壳外（屏幕底部偏左灰色区） */
+  /* fixed 定位脱离 .device，按 body[data-page] 控制显隐；避开右下的 toggle-anno/toggle-figma 和左侧的 demo-bar */
+  .login-demo, .hall-demo-toggle, .plan-demo-toggle { display:none !important; }
+  body[data-page="login"] .login-demo,
+  body[data-page="plan"] .plan-demo-toggle,
+  body[data-page="hall"] .hall-demo-toggle {
+    display:flex !important;
+    position:fixed !important;
+    left:160px;  /* demo-bar 右边 (12+140+8) */
+    z-index:9990;
+    margin:0 !important;
+    width:auto !important;
+    max-width:420px;
+  }
+  body[data-page="login"] .login-demo { bottom:12px; }
+  body[data-page="plan"] .plan-demo-toggle { bottom:12px; }
+  /* hall 页 2 个 demo 纵向错开 */
+  body[data-page="hall"] .hall-demo-toggle.hd-basic { bottom:90px; }
+  body[data-page="hall"] .hall-demo-toggle.hd-nats { bottom:12px; }
+  .demo-bar b { color:var(--gold); font-size:10px; margin-bottom:2px; }
+  .demo-bar button {
+    background:var(--panel-2); color:var(--ink); border:1px solid var(--line);
+    padding:4px 8px; border-radius:4px; font-size:10px; cursor:pointer; text-align:left;
+  }
+  .demo-bar button:hover { background:var(--line); }
+  /* 收起路图状态：M4 单桌 */
+  body.bet-collapsed .bet-area { flex:0 0 260px; }  /* 下注区固定 */
+  body.bet-collapsed .road-area { display:none; }
+
+  /* ===== Figma 对照面板（和原型同宽 390，方便 1:1 对照）===== */
+  .figma-panel {
+    position:fixed; top:0; right:-440px; width:420px; height:100vh; background:#151821;
+    border-left:1px solid var(--line); z-index:9998; transition:right .25s ease;
+    display:flex; flex-direction:column; box-shadow:-4px 0 24px rgba(0,0,0,.5);
+  }
+  .figma-panel.open { right:0; }
+  .figma-panel .fp-hdr {
+    padding:14px 14px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px;
+  }
+  .figma-panel .fp-hdr h3 { flex:1; font-size:13px; color:var(--gold); letter-spacing:1px; }
+  .figma-panel .fp-hdr .fp-key { font-size:10px; color:var(--ink-3); font-family:monospace; }
+  .figma-panel .fp-hdr .fp-close {
+    cursor:pointer; color:var(--ink-2); font-size:18px; padding:0 4px;
+  }
+  .figma-panel .fp-body {
+    flex:1; overflow-y:auto; overflow-x:hidden; padding:15px; background:#0d0f14;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  /* 图片固定 390 宽，和原型手机框同尺寸，方便 1:1 对照 */
+  .figma-panel img {
+    width:390px; height:auto; border-radius:4px; display:block;
+    box-shadow:0 2px 12px rgba(0,0,0,.6);
+  }
+  .figma-panel .fp-empty {
+    color:var(--ink-3); font-size:12px; line-height:1.6; text-align:center;
+    padding:40px 20px; display:none;
+  }
+  .figma-panel .fp-empty code {
+    display:inline-block; background:var(--panel); color:var(--gold); padding:2px 6px;
+    border-radius:3px; font-family:monospace; margin:0 2px;
+  }
+  .figma-panel .fp-tip {
+    font-size:11px; color:var(--ink-3); padding:6px 16px; border-top:1px solid var(--line);
+    background:#0d0f14;
+  }
+
+  /* ===== 视图切换（全路/极简） ===== */
+  /* 极简模式卡片（Figma "table_simple" 182×114，H7 / node 11903:149478）
+     字段对比全路：隐藏 7 维度统计 / 大部分路图；保留 桌号 + 倒计时 + 简化大路 + 路型标签 + "进入" */
+  body.simple .tcard {
+    min-height:114px; padding:6px 8px; display:flex; flex-direction:column; gap:4px;
+  }
+  body.simple .tcard .stats7 { display:none; }
+  body.simple .tcard .thdr {
+    padding:0; height:auto; gap:4px; font-size:11px;
+  }
+  body.simple .tcard .thdr .club-logo { width:16px; height:16px; font-size:7px; border-radius:3px; }
+  body.simple .tcard .thdr .tlabel { font-size:11px; }
+  body.simple .tcard .thdr .tnum { display:none; }
+  body.simple .tcard .thdr .limit { font-size:9px; padding:1px 4px; }
+  /* 简化大路：只显示大路，压缩到 40px 高，2 行 */
+  body.simple .tcard .roads {
+    height:40px; display:grid; grid-template-columns:repeat(16,1fr); grid-template-rows:repeat(2,1fr); gap:1px;
+    flex:1;
+  }
+  body.simple .tcard .pearl, body.simple .tcard .extra { display:none; }
+  /* 状态胶囊缩小 */
+  body.simple .tcard .status-pill { font-size:10px; padding:2px 10px; border-radius:10px; }
+  /* 路型标签放右下 */
+  body.simple .tcard .tag {
+    position:static; align-self:flex-end; font-size:9px;
+    color:var(--gold); background:rgba(201,162,78,.12); padding:1px 6px; border-radius:3px;
+    margin-top:auto;
+  }
+  /* 极简模式倒计时圆环 —— 全路模式隐藏，避免裸数字漏出 */
+  .tcard .sm-cd { display:none; }
+  body.simple .tcard .sm-cd {
+    display:flex; position:absolute; top:4px; right:6px;
+    width:26px; height:26px; border-radius:50%;
+    align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; color:#fff; z-index:3;
+    border:2px solid var(--green);
+  }
+  body.simple .tcard .sm-cd.red { border-color:var(--red); }
+
+  /* Hide annos */
+  body:not(.annos) .anno { display:none; }
+</style>
+</head>
+<body>
+
+<!-- 调试面板 -->
+<div class="debug-bar">
+  <b>页面：</b>
+  <button onclick="nav('loading')">加载 G4</button>
+  <button onclick="nav('login')">登录 M1</button>
+  <button onclick="nav('plan')">交收方案 M2</button>
+  <button onclick="nav('hall')">大厅 M3</button>
+  <button onclick="nav('bet')">单桌 M4</button>
+  <button onclick="nav('multi')">多桌 M5</button>
+</div>
+<button class="toggle-anno" onclick="document.body.classList.toggle('annos')">切换注释标签</button>
+<button class="toggle-figma" onclick="toggleFigmaPanel()">📐 对照 UI 稿</button>
+
+<!-- 场景演示栏（触发各种抽屉/状态演示） -->
+<div class="demo-bar">
+  <b>演示：</b>
+  <button onclick="showFlip('player')">开牌·闲赢</button>
+  <button onclick="showFlip('banker')">开牌·庄赢</button>
+  <button onclick="showFlip('tie')">开牌·和</button>
+  <button onclick="openDialog('gameplay')">玩法资讯</button>
+  <button onclick="openDrawer('tip')">小费抽屉</button>
+  <button onclick="openSideDrawer('switch')">切桌抽屉</button>
+  <button onclick="openSideDrawer('luck')">好路侧拉</button>
+  <button onclick="openDrawer('record')">游戏记录</button>
+  <button onclick="toggleBetCollapse()">收起路图</button>
+</div>
+
+<!-- Figma 对照面板（跟随当前页面/抽屉/dialog 切图） -->
+<div class="figma-panel" id="figma-panel">
+  <div class="fp-hdr">
+    <h3 id="figma-title">M1 登录页</h3>
+    <span class="fp-key" id="figma-key">figma/m1-login.png</span>
+    <span class="fp-close" onclick="toggleFigmaPanel()">✕</span>
+  </div>
+  <div class="fp-body">
+    <img id="figma-img" alt="Figma UI 稿" />
+    <div class="fp-empty" id="figma-empty">
+      <p>这里会显示当前模块的 Figma UI 稿截图。</p>
+      <p style="margin-top:12px;">把截图放到：<br><code id="figma-empty-path">figma/m1-login.png</code></p>
+      <p style="margin-top:12px; font-size:11px;">文件名参考页面底部 tip 栏</p>
+    </div>
+  </div>
+  <div class="fp-tip">
+    🖼️ 把 UI 稿导成 PNG，按右上角显示的文件名丢进 <code>figma/</code> 目录，刷新即可看到
+  </div>
+</div>
+
+<div class="device" id="device">
+
+  <!-- iOS 状态栏（全局，Figma .system/status-bar 390×45）-->
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <span class="indicators">
+      <span class="signal">●●●●</span>
+      <span class="wifi">📶</span>
+      <span class="battery"><i></i></span>
+    </span>
+  </div>
+
+
+  <!-- ============ G4 首屏加载页（2026-04-24 Figma Dev Mode 对齐 node 11869:110988）============ -->
+  <div class="page" id="page-loading">
+    <div class="loading">
+      <!-- 品牌区：五角星 90px + 下方 wordmark 纵向排列 -->
+      <div class="lg-brand">
+        <div class="lg-star">★</div>
+        <div class="lg-wordmark">
+          
+          <p>STAR VIP GAME</p>
+        </div>
+      </div>
+
+      <!-- 介绍文案（U11 解决：纯介绍性，不与 H5 Tab 耦合；U12 解决：全站简体） -->
+      <p class="intro">
+        千金汇有 Newport World Resorts、Solaire、ONEKEY、CAGAYAN 等全球顶尖的大型综合会博彩游戏以及享誉世界的五星级酒店，我们的贵宾们就在乎其中，安全、私密、尊荣，让您尽享安心与奢华！
+      </p>
+
+      <!-- 进度区：绿色百分比文字 + 胶囊进度条 -->
+      <div class="progress-wrap">
+        <div class="pct" id="load-pct">正在加载....22%</div>
+        <div class="bar">
+          <div class="fill" id="load-fill" style="width:30%;"></div>
+        </div>
+      </div>
+
+      <!-- 底部 🔒 VIP + Home Indicator（复用登录页样式） -->
+      <div class="bottom-deco" style="margin-top:auto;">
+        <span class="lock">🔒</span><span>VIP</span>
+      </div>
+      <div class="home-indicator"></div>
+
+      <span class="anno" style="top:36%; left:50%; transform:translateX(-50%);">G4 Logo 纵排</span>
+      <span class="anno" style="top:56%; left:50%; transform:translateX(-50%);">G4 介绍文案（简体 U12）</span>
+      <span class="anno" style="top:72%; right:20px;">G4 进度条 绿字</span>
+    </div>
+  </div>
+
+  <!-- ============ M1 登录（2026-04-24 Figma 对齐） ============ -->
+  <div class="page" id="page-login">
+    <div class="login">
+      <!-- L5 / U10: 登录页不再放独立静音按钮（Sammy Q2=a 决策）；BGM 控制收敛到设置抽屉 C9 音乐设置 -->
+
+      <!-- L7: 品牌区（Figma node 11869:110945）五角星 66px + wordmark 横排，top:338px -->
+      <div class="brand">
+        <div class="star">★</div>
+        <div class="wordmark">
+          
+          <p>STAR VIP GAME</p>
+        </div>
+      </div>
+
+      <!-- L6: 合作赌厅 logo 墙已取消（实景大图承载品牌，由 .login 背景渐变模拟）-->
+
+      <!-- Form（Figma node 11869:110950）322px 宽居中，top:438px
+           现状交互对齐 views/login/index.tsx 竖屏分支（L423-593）：
+           - account 校验 /^[\dA-z-]{3,20}$/（字母开头3-20位字母/数字/连字符）
+           - password 校验 /^[\dA-z]{6,20}$/（6-20位字母/数字）
+           - 提交时：toMD5(`ebet_account${pwd}EbetGameL`) 加盐
+           - 成功分流：position_level=0 → /plan；trade_type 长度=1 → /；其他 → /plan -->
+      <div class="form">
+        <div class="input-wrap" id="acct-wrap">
+          <span class="ic">👤</span>
+          <input type="text" id="acct" placeholder="请输入账号名称" maxlength="20" oninput="loginInputChange('acct')" />
+          <span class="err-icon" id="acct-err-icon">⚠</span>
+        </div>
+        <p class="form-error" id="acct-err"></p>
+
+        <div class="input-wrap" id="pw-wrap">
+          <span class="ic">🔑</span>
+          <input type="password" id="pw" placeholder="请输入密码" maxlength="20" oninput="loginInputChange('pw')" />
+          <!-- L11 密码显隐：初始闭眼（eye-slash），切换时改 .closed 类（现状 inputType state，eye_open/eye_close 互切） -->
+          <span class="eye closed" id="eye" onclick="togglePw()" title="显示/隐藏密码">👁</span>
+          <span class="err-icon" id="pw-err-icon">⚠</span>
+        </div>
+        <p class="form-error" id="pw-err"></p>
+
+        <!-- L3 记住账号：以 Figma UI 稿为准 → 右对齐（2026-04-24 Sammy 决策覆盖初次反馈）
+             注：此为本轮新增功能（现状代码 views/login/index.tsx 没有此持久化逻辑） -->
+        <label class="remember">
+          <input type="checkbox" id="remember-me" checked /> 记住账号
+        </label>
+
+        <!-- 现状：disabled 当 verifyInputValueAll 失败；提交触发 onsubmit → onFinish → dispatch(login) -->
+        <button class="btn-primary" id="loginBtn" disabled onclick="loginSubmit()">登 录</button>
+
+        <!-- 演示开关组：模拟现状登录的多分支结果（前端代码逻辑 L313-343） -->
+        <div class="login-demo">
+          <span class="ddesc">演示分流：</span>
+          <select id="loginDemo" class="login-demo-sel">
+            <option value="hall">单交收方案 → 大厅 (trade_type=1)</option>
+            <option value="plan">多交收方案 / 一级代理 → 选交收方案 (position_level=0)</option>
+            <option value="error-acct">登录失败：账号不存在</option>
+            <option value="error-pwd">登录失败：密码错误</option>
+          </select>
+        </div>
+
+        <!-- L10 语言切换：登录按钮下方，胶囊 + 国旗 + 文字 + ▼ -->
+        <div class="lang" onclick="toggleLangMenu(event)">
+          <span class="flag" id="cur-flag">🇨🇳</span>
+          <span id="cur-lang">简体中文</span>
+          <span class="caret">▼</span>
+          <div class="lang-menu" id="lang-menu">
+            <div class="lang-opt" onclick="pickLang(event, '简体中文', '🇨🇳')"><span class="flag">🇨🇳</span> 简体中文</div>
+            <div class="lang-opt" onclick="pickLang(event, 'English', '🇺🇸')"><span class="flag">🇺🇸</span> English</div>
+            <div class="lang-opt" onclick="pickLang(event, '한국어', '🇰🇷')"><span class="flag">🇰🇷</span> 한국어</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 登录失败 toast（现状由 message 中间件统一处理 g- 错误码） -->
+      <div class="login-toast" id="login-toast"></div>
+      <!-- L12 底部装饰（Figma node 11869:111110）：🔒 VIP + Home Indicator，底部黑条 -->
+      <div class="bottom-deco">
+        <span class="lock">🔒</span>
+        <span>VIP</span>
+      </div>
+      <div class="home-indicator"></div>
+
+      <!-- L5 静音按钮 anno 删除（已无该按钮，Q2=a） -->
+      <span class="anno" style="top:36%; left:50%; transform:translateX(-50%);">L7 品牌 Figma</span>
+      <span class="anno" style="top:55%; right:14px;">L11 密码显隐</span>
+      <span class="anno" style="top:60%; right:14px;">L3 记住账号（右对齐）</span>
+      <span class="anno" style="top:75%; right:14px;">L10 语言切换</span>
+      <span class="anno" style="bottom:10px; right:14px;">L12 🔒 VIP</span>
+    </div>
+  </div>
+
+  <!-- ============ M2 选交收方案（/plan）============
+       沿用现状 views/plan/index.tsx 竖屏布局（L201-296）：
+       - header：title + 退出icon（点击 logout）
+       - ul.list：横向行卡片（list__title 上行：货币icon+code / 余额数字；list__description 下行：占成 / 洗码 / "余额"标签）
+       - footer：进入游戏按钮（disabled 当未选；submit 进大厅）
+       - 体验金（currency_type===8）排末位（L37-47）
+       枚举沿用 utils/tool.ts CurrencyType（PHP=1 / HKD=2 / KRW=3 / USDT=4 / CNY=5 / USD=6 / MYR=7 / PHPTrial=8） -->
+  <div class="page" id="page-plan">
+    <div class="plan-bg">
+      <div class="plan-header">
+        <div class="plan-title-text">选择交收方案</div>
+        <!-- 现状 L208-213：onClick={logout} → dispatch(apiLogout()) → 退登 → 回登录页 -->
+        <div class="plan-exit" title="退出登录" onclick="planLogout()">⏻</div>
+      </div>
+      <div class="plan-list">
+        <!-- 现状交互：点击 li 触发 onClick(item.trade_type_id) → setTradeId → 卡片 active 态切换；进入游戏按钮 disabled 当 tradeId='-1' -->
+        <div class="plan-item" data-tid="t1" onclick="planSelect('t1')">
+          <div class="list-title">
+            <div class="currency-icon">
+              <span class="currency-symbol">₱</span>
+              <span>PHP</span>
+            </div>
+            <div class="list-amount">45,108,957</div>
+          </div>
+          <div class="list-desc">
+            <div class="list-ratio-parent">
+              <div class="list-ratio"><span class="label">占成</span><span class="value">30%</span></div>
+              <div class="list-ratio"><span class="label">洗码</span><span class="value">0.8%</span></div>
+            </div>
+            <div class="list-balance-label">余额</div>
+          </div>
+        </div>
+        <div class="plan-item" data-tid="t2" onclick="planSelect('t2')">
+          <div class="list-title">
+            <div class="currency-icon">
+              <span class="currency-symbol">HK$</span>
+              <span>HKD</span>
+            </div>
+            <div class="list-amount">8,200,000</div>
+          </div>
+          <div class="list-desc">
+            <div class="list-ratio-parent">
+              <div class="list-ratio"><span class="label">占成</span><span class="value">25%</span></div>
+              <div class="list-ratio"><span class="label">洗码</span><span class="value">0.7%</span></div>
+            </div>
+            <div class="list-balance-label">余额</div>
+          </div>
+        </div>
+        <div class="plan-item" data-tid="t3" onclick="planSelect('t3')">
+          <div class="list-title">
+            <div class="currency-icon">
+              <span class="currency-symbol">₮</span>
+              <span>USDT</span>
+            </div>
+            <div class="list-amount">120,500</div>
+          </div>
+          <div class="list-desc">
+            <div class="list-ratio-parent">
+              <div class="list-ratio"><span class="label">占成</span><span class="value">20%</span></div>
+              <div class="list-ratio"><span class="label">洗码</span><span class="value">0.5%</span></div>
+            </div>
+            <div class="list-balance-label">余额</div>
+          </div>
+        </div>
+        <!-- 体验金（PHPTrial=8）：现状 useMemo L37-47 排到列表末位 -->
+        <div class="plan-item" data-tid="t8" onclick="planSelect('t8')">
+          <div class="list-title">
+            <div class="currency-icon">
+              <span class="currency-symbol">₱</span>
+              <span>PHP 体验</span>
+            </div>
+            <div class="list-amount">100,000</div>
+          </div>
+          <div class="list-desc">
+            <div class="list-ratio-parent">
+              <div class="list-ratio"><span class="label">占成</span><span class="value">0%</span></div>
+              <div class="list-ratio"><span class="label">洗码</span><span class="value">0%</span></div>
+            </div>
+            <div class="list-balance-label">余额</div>
+          </div>
+        </div>
+      </div>
+      <!-- 演示开关：模拟传统模式冲突 g-10021 -->
+      <label class="plan-demo-toggle">
+        <input type="checkbox" id="planDemoConflict"> 演示传统模式冲突（g-10021 弹框）
+      </label>
+      <div class="plan-footer">
+        <!-- 现状：disabled 当 tradeId='-1'（未选）；点击触发 submit → chooseTradeType → 成功 intoGameHall（getBalance + getPlayerLimit + nav '/'） -->
+        <button class="plan-confirm-btn" id="planConfirmBtn" disabled onclick="planSubmit()">进入游戏</button>
+      </div>
+      <!-- g-10021 传统模式冲突弹框（现状 L80-107 dialog() 调用） -->
+      <div class="center-dialog" id="plan-conflict-dialog">
+        <div class="cdbox">
+          <div class="cdhdr">退出传统模式</div>
+          <div class="cdbody">您已申请 <b style="color:#fff">A001</b> 桌台的专属服务，请先退出再进入</div>
+          <div class="cdfoot">
+            <button onclick="planConflictCancel()">取消</button>
+            <button class="primary" onclick="planConflictConfirm()">确认退出</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ M3 大厅 ============ -->
+  <div class="page" id="page-hall">
+    <div class="hdr">
+      <!-- MB8 / U4：Header 两件套（⭐ + STAR VIP GAME，Sammy 2026-04-24 品牌调整：去掉"千金汇"三字 + CLUB→GAME） -->
+      <span class="brand">
+        <span class="star">⭐</span>
+        <span class="en">STAR VIP GAME</span>
+      </span>
+      <span class="user">👤 sammy</span>
+      <span class="bal">🪙 45,108,957</span>
+      <span class="ic" title="游戏记录" onclick="openDrawer('record')">📋</span>
+      <span class="ic" title="系统设置" onclick="openDrawer('settings')">⚙</span>
+      <span class="anno" style="top:38px; right:10px;">C1 Header · U4 三件套</span>
+    </div>
+
+    <div class="marquee">
+      <span class="ico">📧</span>
+      <!-- H14 / U3：公告文案"VIP 客户"通用称呼，与品牌名解耦（Figma 2026-04-24） -->
+      <div class="scroll"><span>尊敬的 VIP 客户，由于系统将进行维护升级，预计 24 日凌晨 02:00-04:00 部分桌台可能不稳定 · 新款 Lucky6 桌台上线欢迎试玩 · </span></div>
+      <span class="multi-btn" onclick="nav('multi')" data-i18n="multi-bet">多台游戏</span>
+      <span class="anno" style="top:70px; left:10px;">H14 · U3 VIP 客户</span>
+    </div>
+
+    <!-- H3 Banner：图片跟随赌厅 Tab 切换（非自动轮播）。Sammy 2026-04-24 -->
+    <div class="banner" id="banner">
+      <img id="banner-img" src="figma/banners/banner-all.png" alt="Banner" onerror="this.classList.add('hide')">
+      <span class="banner-fallback" id="banner-fallback">NEWPORT WORLD RESORTS · 广告位</span>
+      <span class="anno" style="top:0; right:14px;">H3 Banner · Tab 联动</span>
+    </div>
+
+    <!-- H4 好路推荐：2×3 卡片铺开；桌号按 Figma 用 CAG0XX 格式；路型标签中英混排 -->
+    <div class="lucky-roads">
+      <div class="luck-grid">
+        <div class="luck-card" onclick="nav('bet')">
+          <div class="top-row">
+            <span class="cd">10</span>
+            <div class="mini-road"><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="r"></i><i></i><i class="r"></i><i></i><i class="r"></i><i class="b"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="r"></i><i></i><i></i><i></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="bot-row">
+            <span class="name">CAG036</span>
+            <span class="tag">长庄</span>
+          </div>
+        </div>
+        <div class="luck-card" onclick="nav('bet')">
+          <div class="top-row">
+            <span class="cd red">4</span>
+            <div class="mini-road"><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="b"></i><i></i><i class="b"></i><i></i><i class="b"></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="b"></i><i></i><i></i><i></i><i class="b"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="b"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="bot-row">
+            <span class="name">CAG036</span>
+            <span class="tag">长闲</span>
+          </div>
+        </div>
+        <div class="luck-card" onclick="nav('bet')">
+          <div class="top-row">
+            <span class="cd red">4</span>
+            <div class="mini-road"><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i class="r"></i><i></i><i></i><i class="b"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="bot-row">
+            <span class="name">CAG036</span>
+            <span class="tag">Player Never Sticks</span>
+          </div>
+        </div>
+        <div class="luck-card" onclick="nav('bet')">
+          <div class="top-row">
+            <span class="cd red">4</span>
+            <div class="mini-road"><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i class="r"></i><i></i><i></i><i class="b"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="bot-row">
+            <span class="name">CAG036</span>
+            <span class="tag">Player Never Sticks</span>
+          </div>
+        </div>
+        <div class="luck-card" onclick="nav('bet')">
+          <div class="top-row">
+            <span class="cd">10</span>
+            <div class="mini-road"><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="r"></i><i></i><i class="r"></i><i></i><i class="r"></i><i class="b"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="r"></i><i></i><i></i><i></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="bot-row">
+            <span class="name">CAG036</span>
+            <span class="tag">长庄</span>
+          </div>
+        </div>
+        <div class="luck-card" onclick="nav('bet')">
+          <div class="top-row">
+            <span class="cd red">4</span>
+            <div class="mini-road"><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="bot-row">
+            <span class="name">CAG036</span>
+            <span class="tag">BigRoad1Hop</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- H5 / U2：赌厅 Tab 用 logo 图（figma/tabs/）+ 60 角标 + 点击切换 -->
+    <div class="hall-filter">
+      <span class="tab tab-all active" onclick="pickTab(this)"><span class="tab-text" data-i18n="all-clubs">全部赌场</span><span class="badge">60</span></span>
+      <span class="tab tab-newport" onclick="pickTab(this)"><span class="tab-text">Newport</span><span class="badge">60</span></span>
+      <span class="tab tab-onekey" onclick="pickTab(this)"><span class="tab-text">ONEKEY</span><span class="badge">60</span></span>
+      <span class="tab tab-cagayan" onclick="pickTab(this)"><span class="tab-text">CAGAYAN</span><span class="badge">60</span></span>
+      <span class="tab tab-solaire" onclick="pickTab(this)"><span class="tab-text">Solaire</span><span class="badge">60</span></span>
+    </div>
+    <span class="anno" style="top:228px; right:10px;">H5 · U2 4 家 + 全部（每 Tab 带 60 角标）</span>
+
+    <!-- 排序区（Figma: 全部桌台 ▾ + 好路 99 ▾ 两个下拉 + 全路/极简 切换）-->
+    <div class="hall-sort">
+      <!-- 全部桌台下拉：H13 枚举 全部桌台 / 传统模式 / 快速模式 -->
+      <div class="sort-dropdown" onclick="toggleSortMenu(event, 'desk-type')">
+        <span id="desk-type-label" data-i18n="all-tables">全部桌台</span>
+        <span class="caret">▾</span>
+        <div class="sort-menu" id="desk-type-menu">
+          <div class="sort-opt" onclick="pickSort(event, 'desk-type', '全部桌台')">全部桌台</div>
+          <div class="sort-opt" onclick="pickSort(event, 'desk-type', '传统模式')">传统模式</div>
+          <div class="sort-opt" onclick="pickSort(event, 'desk-type', '快速模式')">快速模式</div>
+        </div>
+      </div>
+      <!-- H6 排序下拉（Sammy 2026-04-25 Q2=b 按原有功能改造）：
+           4 项顺序：默认 / 好路 / 低至高 / 高至低
+           业务枚举沿用现状 sort_rule（''/'asc'/'desc'），仅"不排序"文案改名为"默认"；"好路"为新增枚举 -->
+      <div class="sort-dropdown" onclick="toggleSortMenu(event, 'sort-rule')">
+        <span id="sort-rule-label" data-i18n="default-sort">默认</span>
+        <span class="caret">▾</span>
+        <div class="sort-menu" id="sort-rule-menu">
+          <div class="sort-opt" onclick="pickSort(event, 'sort-rule', '默认')">默认</div>
+          <div class="sort-opt" onclick="pickSort(event, 'sort-rule', '好路')">好路</div>
+          <div class="sort-opt" onclick="pickSort(event, 'sort-rule', '低至高')">低至高</div>
+          <div class="sort-opt" onclick="pickSort(event, 'sort-rule', '高至低')">高至低</div>
+        </div>
+      </div>
+      <div class="view-toggle">
+        <span class="active" onclick="setHallView(this, false)" data-i18n="full-road">全路</span>
+        <span onclick="setHallView(this, true)" data-i18n="simple">极简</span>
+      </div>
+    </div>
+
+    <!-- 演示开关组（仅原型用，前端代码无此元素 — Sammy 2026-04-27 已 fixed 定位到屏幕右下手机壳外） -->
+    <label class="hall-demo-toggle hd-basic">
+      <!-- Q4/Q5：模拟 table.tsx L189-227 已申请传统模式（apply_basic_ing=Passed）+ 在 bet 页 状态
+           勾上后：点传统桌（卡2 H071）→ Q4 切换桌台确认；点快速桌 → Q5 toast"传统模式玩家不能切换玩法" -->
+      <input type="checkbox" id="hallDemoBasic"> 演示：已申请传统模式 + 在 bet 页（点传统桌 = 切换确认 / 点快速桌 = 报错）
+    </label>
+    <label class="hall-demo-toggle hd-nats">
+      <!-- Q7：模拟 nats LobbyGameEvent 推送，每秒倒计时 -1 + 路图随机加点 -->
+      <input type="checkbox" id="hallDemoNats" onchange="hallToggleNats(this.checked)"> 演示：nats 实时推送（倒计时每秒动 + 路图随机加点）
+    </label>
+
+    <!-- H9 / H15 桌台卡片（Figma 2026-04-24）：header 三件套（logo+编号+限红）+ 7 维度 + 5 路 + 状态胶囊 + 路型 -->
+    <div class="table-grid">
+
+      <!-- 卡 1：无限红 + 开牌中胶囊 - 正常下注态（desk_status=2 GameIng） -->
+      <div class="tcard" data-state="normal" data-mode="fast" data-desk-id="70" data-club="3" onclick="hallChooseTable(this)">
+        <div class="sm-cd">5</div>
+        <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 70</span><span class="tnum">0</span><span class="limit" data-i18n="unlimited" onclick="event.stopPropagation();openDialog('table-limit')">无限红</span></div>
+        <div class="stats7">
+          <span class="cell l-j"><span class="tag">局</span><b>30</b></span><span class="cell l-zh"><span class="tag">庄</span><b>30</b></span><span class="cell l-xi"><span class="tag">闲</span><b>30</b></span><span class="cell l-he"><span class="tag">和</span><b>30</b></span>
+          <span class="cell l-zd"><span class="tag">庄对</span><b>30</b></span><span class="cell l-xd"><span class="tag">闲对</span><b>30</b></span><span class="cell l-lk"><span class="tag">幸运6</span><b>30</b></span>
+        </div>
+        <div class="roads"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="status-pill deal" data-i18n="opening">开牌中</div>
+        <div class="tag">双跳</div>
+      </div>
+
+      <!-- 卡 2：传统桌台（game_mod=BasicGame=2，演示 Q4 切换桌台确认场景；其他都是快速桌 game_mod=FastGame=1） -->
+      <div class="tcard" data-state="normal" data-mode="basic" data-desk-id="71" data-club="3" onclick="hallChooseTable(this)">
+        <div class="sm-cd red">4</div>
+        <div class="thdr"><span class="club-logo">NP</span><span class="tlabel">传统桌台 71</span><span class="tnum">0</span><span class="limit range" onclick="event.stopPropagation();openDialog('table-limit')">0.05-50K</span></div>
+        <div class="stats7">
+          <span class="cell l-j"><span class="tag">局</span><b>30</b></span><span class="cell l-zh"><span class="tag">庄</span><b>30</b></span><span class="cell l-xi"><span class="tag">闲</span><b>30</b></span><span class="cell l-he"><span class="tag">和</span><b>30</b></span>
+          <span class="cell l-zd"><span class="tag">庄对</span><b>30</b></span><span class="cell l-xd"><span class="tag">闲对</span><b>30</b></span><span class="cell l-lk"><span class="tag">幸运6</span><b>30</b></span>
+        </div>
+        <div class="roads"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="status-pill shuffle" data-i18n="shuffling">洗牌中</div>
+        <div class="tag">长庄</div>
+      </div>
+
+      <!-- 卡 3：正常下注态（无胶囊，倒计时 18） -->
+      <div class="tcard" data-state="normal" data-mode="fast" data-desk-id="72" data-club="8" onclick="hallChooseTable(this)">
+        <div class="sm-cd">9</div>
+        <div class="thdr"><span class="club-logo">CA</span><span class="tlabel">快速桌台 72</span><span class="tnum green">15</span><span class="limit range" onclick="event.stopPropagation();openDialog('table-limit')">0.1-100K</span></div>
+        <div class="stats7">
+          <span class="cell l-j"><span class="tag">局</span><b>45</b></span><span class="cell l-zh"><span class="tag">庄</span><b>18</b></span><span class="cell l-xi"><span class="tag">闲</span><b>22</b></span><span class="cell l-he"><span class="tag">和</span><b>5</b></span>
+          <span class="cell l-zd"><span class="tag">庄对</span><b>4</b></span><span class="cell l-xd"><span class="tag">闲对</span><b>3</b></span><span class="cell l-lk"><span class="tag">幸运6</span><b>1</b></span>
+        </div>
+        <div class="roads"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="tag">Player Never Sticks</div>
+      </div>
+
+      <!-- 卡 4：换靴中（desk_status=4 ChangingCardDesk） -->
+      <div class="tcard" data-state="shoe" data-mode="fast" data-desk-id="73" data-club="5" onclick="hallChooseTable(this)">
+        <div class="sm-cd">10</div>
+        <div class="thdr"><span class="club-logo">SO</span><span class="tlabel">快速桌台 73</span><span class="tnum green">8</span><span class="limit" data-i18n="unlimited">无限红</span></div>
+        <div class="status-overlay shoe">换靴中</div>
+        <div class="stats7">
+          <span class="cell l-j"><span class="tag">局</span><b>92</b></span><span class="cell l-zh"><span class="tag">庄</span><b>38</b></span><span class="cell l-xi"><span class="tag">闲</span><b>41</b></span><span class="cell l-he"><span class="tag">和</span><b>8</b></span>
+          <span class="cell l-zd"><span class="tag">庄对</span><b>5</b></span><span class="cell l-xd"><span class="tag">闲对</span><b>6</b></span><span class="cell l-lk"><span class="tag">幸运6</span><b>2</b></span>
+        </div>
+        <div class="roads"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="tag">BigRoad1Hop</div>
+      </div>
+
+      <!-- 卡 5：包桌（is_vip=1）→ 点击弹密码框（现状 statusWrap.tsx L60-75 setShowReserveTable） -->
+      <div class="tcard" data-state="vip" data-mode="fast" data-desk-id="74" data-club="3" onclick="hallChooseTable(this)">
+        <div class="sm-cd">22</div>
+        <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 74</span><span class="tnum">3</span><span class="limit range">0.5-500K</span></div>
+        <div class="status-overlay vip">包桌</div>
+        <div class="stats7">
+          <span class="cell l-j"><span class="tag">局</span><b>54</b></span><span class="cell l-zh"><span class="tag">庄</span><b>20</b></span><span class="cell l-xi"><span class="tag">闲</span><b>19</b></span><span class="cell l-he"><span class="tag">和</span><b>3</b></span>
+          <span class="cell l-zd"><span class="tag">庄对</span><b>2</b></span><span class="cell l-xd"><span class="tag">闲对</span><b>4</b></span><span class="cell l-lk"><span class="tag">幸运6</span><b>0</b></span>
+        </div>
+        <div class="roads"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="tag">长闲</div>
+      </div>
+
+      <!-- 卡 6：维护中（desk_status=3 MaintainDesk）→ 点击 message.error('桌台未开放')（statusWrap.tsx L32-34） -->
+      <div class="tcard" data-state="maintain" data-mode="fast" data-desk-id="75" data-club="3" onclick="hallChooseTable(this)">
+        <div class="sm-cd">10</div>
+        <div class="thdr"><span class="club-logo">NP</span><span class="tlabel">快速桌台 75</span><span class="tnum green">22</span><span class="limit range">0.05-50K</span></div>
+        <div class="status-overlay maintain">维护中</div>
+        <div class="stats7">
+          <span class="cell l-j"><span class="tag">局</span><b>38</b></span><span class="cell l-zh"><span class="tag">庄</span><b>14</b></span><span class="cell l-xi"><span class="tag">闲</span><b>14</b></span><span class="cell l-he"><span class="tag">和</span><b>3</b></span>
+          <span class="cell l-zd"><span class="tag">庄对</span><b>3</b></span><span class="cell l-xd"><span class="tag">闲对</span><b>1</b></span><span class="cell l-lk"><span class="tag">幸运6</span><b>0</b></span>
+        </div>
+        <div class="roads"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+
+    <!-- 包桌密码弹框（对齐现状 ReserveTable 组件 + bet.slice setShowReserveTable） -->
+    <div class="center-dialog" id="hall-vip-dialog">
+      <div class="cdbox">
+        <div class="cdhdr">包桌密码</div>
+        <div class="cdbody">
+          <p style="margin-bottom:12px;color:var(--ink-3);">桌台 <b style="color:#fff" id="vip-desk-id">-</b> 是包桌，请输入 6-10 位数字密码</p>
+          <input type="password" id="vip-pwd" maxlength="10" placeholder="请输入密码"
+                 style="width:100%;padding:10px;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:6px;color:#fff;font-family:inherit;text-align:center;letter-spacing:4px;"
+                 oninput="hallVipPwdInput()" />
+          <p id="vip-pwd-err" style="display:none;color:#ff5a5a;font-size:11px;margin-top:6px;text-align:center;"></p>
+        </div>
+        <div class="cdfoot">
+          <button onclick="hallVipCancel()">取消</button>
+          <button class="primary" id="vip-confirm-btn" disabled onclick="hallVipConfirm()">确认</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 维护提示 toast（对齐现状 message.error('桌台未开放')） -->
+    <div class="login-toast" id="hall-toast"></div>
+
+    <!-- 限红选择器气泡（对齐现状 SelectPicker 组件） -->
+    <div class="limit-popover" id="limit-popover">
+      <div class="lp-item active">0.05-50K</div>
+      <div class="lp-item">0.1-100K</div>
+      <div class="lp-item">0.5-500K</div>
+      <div class="lp-item">1-1000K</div>
+    </div>
+
+    <!-- 切换桌台确认弹框（对齐现状 table.tsx L237-290 changeTableConfirm；
+         仅当 game_mod=BasicGame + 在 bet 页 + apply_basic_ing=Passed 时触发） -->
+    <div class="center-dialog" id="hall-change-dialog">
+      <div class="cdbox">
+        <div class="cdhdr">提示</div>
+        <div class="cdbody" style="text-align:left;">
+          <p id="change-cross-club" style="display:none;color:#ff9a3c;margin-bottom:8px;">切换赌场将先结束当前游戏</p>
+          <p style="margin-bottom:10px;">请确定是否切换桌台信息：</p>
+          <p style="margin:6px 0;"><span style="color:var(--ink-3);">赌场：</span><span id="change-target-club" style="color:var(--gold);font-weight:600;">-</span></p>
+          <p style="margin:6px 0;"><span style="color:var(--ink-3);">桌台：</span><span id="change-target-desk" style="color:var(--gold);font-weight:600;">-</span></p>
+          <p style="margin-top:14px;color:var(--ink-3);font-size:11px;">（确认后调用 <code>gameAPI.changeDesk</code> + 触发 <code>show_wait_better</code> 等待枪手处理）</p>
+        </div>
+        <div class="cdfoot">
+          <button onclick="hallChangeCancel()">取消</button>
+          <button class="primary" onclick="hallChangeConfirm()">确认</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ M4 单桌 ============ -->
+  <div class="page" id="page-bet">
+    <!-- M4 单桌页没有 Header（Figma 稿视频区紧贴 status-bar，返回/设置/小费等在视频顶部 icon 柱里；桌号/限红在视频下方桌信息栏）—— Sammy 2026-04-24 校正 -->
+
+    <!-- 视频区（Figma "live竖版" 230 高）—— 左上返回（含 Lucky6 角标 6）+ 右侧 5 icons + 中央倒计时
+         Sammy 2026-04-25 校正：总 6 icons（含返回）
+         返回：左上角 ← + Lucky6 模式指示角标"6"
+         右侧 5 项顺序：⚙ 设置 / 📺 视频源设置 / 🎁 小费 / 🔍 视频源放大缩小 / 🎥 切桌
+         （vs 现状代码 5 icons "返回/设置/切桌/小费/刷新"：🗑 删"刷新"+ 🆕 新增"视频源设置"+ 🆕 新增"视频源放大缩小"） -->
+    <div class="bet-video">
+      <div class="btn-back" onclick="nav('hall')">←</div>
+      <!-- 右侧 icon 柱（从上到下）5 项 -->
+      <div class="right-icons">
+        <span class="ic" onclick="openDrawer('settings')" title="设置">⚙</span>
+        <span class="ic" title="视频源设置" onclick="openDialog('video')">📺</span>
+        <span class="ic tip" title="小费" onclick="openDrawer('tip')">🎁</span>
+        <span class="ic" title="视频源放大缩小" onclick="toggleVideoZoom()">🔍</span>
+        <span class="ic" title="切桌" onclick="openSideDrawer('switch')">🎥</span>
+      </div>
+      <!-- 中央绿色倒计时圆环 -->
+      <span class="cd-big">10</span>
+      <span class="anno" style="top:50%; left:8%; transform:translateY(-50%);">B3 倒计时绿环</span>
+      <span class="anno" style="bottom:10px; right:8px;">5 icons 右侧柱（+ 左上返回 = 6）</span>
+    </div>
+
+    <!-- 视频下方桌信息栏（Figma: 桌号 ON02 / ID / Newport logo / 限红下拉 / ? 帮助） -->
+    <div class="desk-info">
+      <div class="dinfo-left">
+        <b>👤 ON02</b>
+        <span>🪪 ONSB02240614130710</span>
+      </div>
+      <!-- 桌信息栏中间：当前桌所属场馆 logo（按 desk.club_id 自动显示，前端不可点）
+           当前演示桌 ON02 属 Newport；图片是占位 — 最终需 UI 出"桌信息栏专用 logo"集合（非 figma/tabs/） -->
+      <div class="dinfo-logo">
+        <img id="dinfo-logo-img" src="figma/tabs/tab-newport.png" alt="Newport（占位 — 待 UI 出桌信息栏专用 logo）" />
+      </div>
+      <!-- 限红显示（Sammy 2026-04-27 替换 popover 为完整桌台限红 dialog 4 行 2 列）-->
+      <span class="limit" onclick="openDialog('table-limit')">🪙 20-100K ▾</span>
+      <!-- ? 玩法说明（现状 howToPlayImg → setDialogState({gamePlay:true}) → <GamePlay> 弹窗）
+           Sammy 2026-04-25 校正：位置在限红右侧（不在视频区 icon 柱） -->
+      <span class="help" title="玩法说明" onclick="openDialog('gameplay')">?</span>
+    </div>
+
+    <!-- 下注台（Figma 分页：Page 1 node 11903:185008 / Page 2 node 11903:176546；产品层面不分模式）
+         B9：上半部分翻页 / 下半部分庄/闲常驻；支持触摸手势滑动（Sammy 2026-04-24） -->
+    <div class="bet-area">
+      <!-- 页签指示器（"和"正上方位置，Sammy 2026-04-24 位置校正） -->
+      <div class="bet-pager">
+        <span class="arrow" onclick="switchBetPage(-1)">‹</span>
+        <i class="on" onclick="setBetPage(1)"></i>
+        <i onclick="setBetPage(2)"></i>
+        <span class="arrow" onclick="switchBetPage(1)">›</span>
+      </div>
+
+      <!-- 上半：分页区（Page 1 / Page 2），支持左右手势滑动 -->
+      <div class="bet-swipe" id="bet-swipe">
+        <!-- Page 1：经典 3 栏 闲对 / 和 / 庄对 -->
+        <div class="bet-page active" data-page="1">
+          <div class="bet-row row-top">
+            <div class="bet-cell pair-p" onclick="tapBetCell(this)">
+              <span class="zh">闲对</span>
+              <span class="en">Player Pair</span>
+              <span class="odds">1:1</span>
+              <div class="bet-meta"><span>👤 0</span><span>0 🪙</span></div>
+            </div>
+            <div class="bet-cell tie" onclick="tapBetCell(this)">
+              <span class="zh">和</span>
+              <span class="en">Tie</span>
+              <span class="odds">1:8</span>
+              <div class="bet-meta"><span>👤 0</span><span>0 🪙</span></div>
+            </div>
+            <div class="bet-cell pair-b" onclick="tapBetCell(this)">
+              <span class="zh">庄对</span>
+              <span class="en">Banker Pair</span>
+              <span class="odds">1:0.95</span>
+              <div class="bet-meta"><span>👤 1</span><span>670 🪙</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Page 2：幸运6 / Lucky6 2 Cards / Lucky6 3 Cards 三栏（Figma node 11903:174124）-->
+        <div class="bet-page" data-page="2">
+          <div class="bet-row row-top">
+            <div class="bet-cell lucky" onclick="tapBetCell(this)">
+              <span class="zh">幸运 6</span>
+              <span class="en">Lucky 6</span>
+              <span class="odds">1:12 · 1:20</span>
+              <div class="bet-meta"><span>👤 0</span><span>0 🪙</span></div>
+            </div>
+            <div class="bet-cell lucky" onclick="tapBetCell(this)">
+              <span class="zh">2 Cards</span>
+              <span class="en">Lucky 6 · 2 Cards</span>
+              <span class="odds">1:12</span>
+              <div class="bet-meta"><span>👤 0</span><span>0 🪙</span></div>
+            </div>
+            <div class="bet-cell lucky" onclick="tapBetCell(this)">
+              <span class="zh">3 Cards</span>
+              <span class="en">Lucky 6 · 3 Cards</span>
+              <span class="odds">1:20</span>
+              <div class="bet-meta"><span>👤 0</span><span>0 🪙</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 下半：庄/闲常驻（两页共用，Figma y:418-508）-->
+      <div class="bet-row row-main">
+        <div class="bet-cell player" onclick="tapBetCell(this)">
+          <span class="zh">闲</span>
+          <span class="en">Player</span>
+          <span class="odds">1:11</span>
+          <div class="bet-meta"><span>👤 3</span><span>3K 🪙</span></div>
+        </div>
+        <div class="bet-cell banker" onclick="tapBetCell(this)">
+          <span class="zh">庄</span>
+          <span class="en">Banker</span>
+          <span class="odds">1:11</span>
+          <div class="bet-meta"><span>👤 0</span><span>0 🪙</span></div>
+        </div>
+      </div>
+
+      <span class="anno" style="top:4px; right:8px;">B9 分页 · 顶部页签（"和"上方）· 手势滑动</span>
+    </div>
+
+    <!-- 操作栏（Sammy 2026-04-24 业务逻辑校正）：
+         · 最多 3 个按钮：取消 / 撤注 / [重复 ↔ 确认]
+         · 取消：投注未满足最低限红时出现（筹码已摆但未扣款）
+         · 撤注：已成功下注的撤回
+         · 重复 / 确认（第 3 个按钮动态切换）：
+           - 确认式（bet_model=2）：默认"重复"；玩家点筹码下注或点"重复"触发待确认态 → 切"确认"；点"确认"完成 → 切回"重复"
+           - 点击式（bet_model=1）：始终"重复"（点即下注成功，无需"确认"） -->
+    <div class="ops">
+      <button onclick="onCancelBet()" data-i18n="cancel" data-i18n-prefix="⊘ ">⊘ 取消</button>
+      <button onclick="onRevokeBet()" data-i18n="revoke" data-i18n-prefix="↶ ">↶ 撤注</button>
+      <button id="ops-main" onclick="onMainBtn()">↻ 重复</button>
+    </div>
+
+    <!-- 筹码栏（Sammy 截图数值：500/1K/5K(active)/10K/20K + 💡好路 + ⚙设置筹码） -->
+    <div class="chip-bar">
+      <div class="chip-set" title="C7 设置 / 自定义筹码" onclick="openDialog('chip')">⚙</div>
+      <div class="chip purple" onclick="pickChip(this)">500</div>
+      <div class="chip" onclick="pickChip(this)">1,000</div>
+      <div class="chip red active" onclick="pickChip(this)">5,000</div>
+      <div class="chip" onclick="pickChip(this)">10,000</div>
+      <div class="chip blue" onclick="pickChip(this)">20,000</div>
+      <div class="chip-luck" title="B7 好路侧拉" onclick="openSideDrawer('luck')">💡<span class="luck-num">20</span></div>
+    </div>
+
+    <!-- 筹码栏下方 · · · · 页码指示器（4 档筹码集） -->
+    <div class="chip-pager"><i></i><i class="on"></i><i></i><i></i></div>
+
+    <!-- Balance / Bet / Win/Lose 三栏统计（右侧带 🔽 展开箭头） -->
+    <div class="data-row">
+      <span class="stat"><label>Balance</label><b>20.00005M</b></span>
+      <span class="stat mid"><label>Bet</label><b>0</b></span>
+      <span class="stat"><label>Win/Lose</label><b class="win">+20.00005M</b></span>
+      <span class="wl-toggle">▼</span>
+    </div>
+
+    <div class="road-area">
+      <div class="pearl">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div class="bigroad">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+    </div>
+
+    <div class="bottom-stats">
+      <span>总 <b>128</b></span>
+      <span>庄 <b>42</b></span>
+      <span>闲 <b>38</b></span>
+      <span>和 <b>12</b></span>
+      <span>对 <b>8</b></span>
+      <div class="ask">
+        <span class="a ab">庄问路</span>
+        <span class="a ap">闲问路</span>
+      </div>
+      <span class="anno" style="bottom:30px; right:10px;">B14 底部横排</span>
+    </div>
+  </div>
+
+  <!-- ============ M5 多桌 ============ -->
+  <div class="page" id="page-multi">
+    <div class="hdr">
+      <span class="brand back" onclick="nav('hall')">
+        <span class="star">⭐</span><span class="en">STAR VIP GAME</span>
+      </span>
+      <span class="user">👤 sammy</span>
+      <span class="bal">🪙 45,108,957</span>
+      <span class="ic" onclick="openDrawer('record')">📋</span>
+      <span class="ic" onclick="openDrawer('settings')">⚙</span>
+    </div>
+
+    <!-- H5 / U2：和大厅共用一套赌厅 Tab（logo 图 + 60 角标）-->
+    <div class="hall-filter">
+      <span class="tab tab-all active" onclick="pickTab(this)"><span class="tab-text">全部赌场</span><span class="badge">60</span></span>
+      <span class="tab tab-newport" onclick="pickTab(this)"><span class="tab-text">Newport</span><span class="badge">60</span></span>
+      <span class="tab tab-onekey" onclick="pickTab(this)"><span class="tab-text">ONEKEY</span><span class="badge">60</span></span>
+      <span class="tab tab-cagayan" onclick="pickTab(this)"><span class="tab-text">CAGAYAN</span><span class="badge">60</span></span>
+      <span class="tab tab-solaire" onclick="pickTab(this)"><span class="tab-text">Solaire</span><span class="badge">60</span></span>
+    </div>
+    <div class="hall-filter" style="padding-bottom:8px;">
+      <span class="tab active">好路置顶<span class="badge">9</span></span>
+      <span class="tab">热门置顶</span>
+      <span class="tab">投注置顶</span>
+      <span class="tab" style="background:var(--panel-2);">🔄 刷新</span>
+    </div>
+    <span class="anno" style="top:90px; right:10px;">MB2/MB3 双层 Tab</span>
+
+    <div class="multi-list">
+      <div class="mcard">
+        <div class="mtop">
+          <b>Newport</b> <b>快速桌 21</b>
+          <span class="cd">18</span>
+          <span class="vid">▶ 开启视频</span>
+          <span class="limit">20-50K</span>
+        </div>
+        <div class="mmid">
+          <div class="pearl"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="bigroad"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="roadtag">大路单跳</span></div>
+          <div class="bets">
+            <div class="bc">闲对 1:11</div>
+            <div class="bc">和 1:8</div>
+            <div class="bc">庄对 1:11</div>
+            <div class="bc player">闲 1:1</div>
+            <div class="bc banker">庄 1:0.95</div>
+          </div>
+        </div>
+        <div class="mbot">
+          <span>局 <b>128</b></span>
+          <span>庄 <b>42</b></span>
+          <span>闲 <b>38</b></span>
+          <span>和 <b>12</b></span>
+          <span class="lock">🔓</span>
+          <span class="enter" onclick="nav('bet')">进入本桌 ›</span>
+        </div>
+      </div>
+
+      <div class="mcard">
+        <div class="mtop">
+          <b>Solaire</b> <b>快速桌 81</b>
+          <span class="cd" style="background:var(--red);">3</span>
+          <span class="vid">▶ 开启视频</span>
+          <span class="limit">50-100K</span>
+        </div>
+        <div class="mmid">
+          <div class="pearl"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="bigroad"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="roadtag">拍拍黐</span></div>
+          <div class="bets">
+            <div class="bc">闲对 1:11</div>
+            <div class="bc">和 1:8</div>
+            <div class="bc">庄对 1:11</div>
+            <div class="bc player">闲 1:1</div>
+            <div class="bc banker">庄 1:0.95</div>
+          </div>
+        </div>
+        <div class="mbot">
+          <span>局 <b>67</b></span>
+          <span>庄 <b>28</b></span>
+          <span>闲 <b>22</b></span>
+          <span>和 <b>5</b></span>
+          <span class="lock" style="color:var(--gold);">🔒</span>
+          <span class="enter" onclick="nav('bet')">进入本桌 ›</span>
+        </div>
+      </div>
+
+      <div class="mcard">
+        <div class="mtop">
+          <b>CAGAYAN</b> <b>快速桌 09</b>
+          <span class="cd">22</span>
+          <span class="vid">▶ 开启视频</span>
+          <span class="limit">20-50K</span>
+        </div>
+        <div class="mmid">
+          <div class="pearl"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="bigroad"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="bets">
+            <div class="bc">闲对 1:11</div>
+            <div class="bc">和 1:8</div>
+            <div class="bc">庄对 1:11</div>
+            <div class="bc player">闲 1:1</div>
+            <div class="bc banker">庄 1:0.95</div>
+          </div>
+        </div>
+        <div class="mbot">
+          <span>局 <b>95</b></span>
+          <span>庄 <b>38</b></span>
+          <span>闲 <b>41</b></span>
+          <span>和 <b>8</b></span>
+          <span class="lock">🔓</span>
+          <span class="enter" onclick="nav('bet')">进入本桌 ›</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 抽屉遮罩 ============ -->
+  <div class="mask" id="mask" onclick="closeAll()"></div>
+
+  <!-- ============ B5 小费打赏抽屉 ============ -->
+  <div class="bottom-sheet" id="drawer-tip">
+    <div class="bs-hdr tip-hdr">
+      <span class="close" onclick="closeOne('drawer-tip')">✕</span>
+      <div class="tip-amount">
+        <span class="tip-currency">$</span>
+        <span class="tip-value" id="tip-value">0</span>
+      </div>
+      <button class="tip-confirm" onclick="closeOne('drawer-tip')">打赏</button>
+    </div>
+    <div class="bs-body">
+      <div class="section-title" style="padding:8px 16px;">选择面额（点击累加）</div>
+      <div class="tip-chips">
+        <div class="tc" onclick="addTip(25)">25</div>
+        <div class="tc" onclick="addTip(50)">50</div>
+        <div class="tc" onclick="addTip(100)">100</div>
+        <div class="tc" onclick="addTip(500)">500</div>
+        <div class="tc" onclick="addTip(1000)">1K</div>
+        <div class="tc" onclick="addTip(5000)">5K</div>
+        <div class="tc" onclick="addTip(10000)">10K</div>
+        <div class="tc" onclick="addTip(50000)">50K</div>
+        <div class="tc" onclick="addTip(100000)">100K</div>
+        <div class="tc" onclick="addTip(500000)">500K</div>
+        <div class="tc" onclick="addTip(1000000)">1M</div>
+        <div class="tc reset" onclick="resetTip()">清零</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ B3 切桌抽屉（从右侧侧拉覆盖视频区）============ -->
+  <div class="side-drawer" id="drawer-switch">
+    <div class="sd-hdr">
+      <h3>切换桌台</h3>
+      <span class="close" onclick="closeAll()">✕</span>
+    </div>
+    <div class="sd-body">
+      <div class="sd-tab-row">
+        <span class="sd-tab active">全部</span>
+        <span class="sd-tab">Newport</span>
+        <span class="sd-tab">ONEKEY</span>
+        <span class="sd-tab">Solaire</span>
+      </div>
+      <div class="sd-list">
+        <div class="sd-item" onclick="closeAll()">
+          <div class="sd-t">快速桌 70 · Newport</div>
+          <div class="sd-s">0.05-50K · 18 人在玩</div>
+        </div>
+        <div class="sd-item current" onclick="closeAll()">
+          <div class="sd-t">快速桌 71 · ONEKEY（当前）</div>
+          <div class="sd-s">0.05-50K · 23 人</div>
+        </div>
+        <div class="sd-item" onclick="closeAll()">
+          <div class="sd-t">快速桌 72 · CAGAYAN</div>
+          <div class="sd-s">0.1-100K · 9 人</div>
+        </div>
+        <div class="sd-item" onclick="closeAll()">
+          <div class="sd-t">快速桌 73 · Solaire</div>
+          <div class="sd-s">无限红 · 30 人</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ B7 好路侧拉面板（大厅 + 单桌共用）============ -->
+  <div class="side-drawer" id="drawer-luck">
+    <div class="sd-hdr">
+      <h3>好路推荐</h3>
+      <span class="sd-sub">12 条</span>
+      <span class="close" onclick="closeAll()">✕</span>
+    </div>
+    <div class="sd-body">
+      <div class="luck-list">
+        <div class="luck-item" onclick="nav('bet'); closeAll();">
+          <div class="luck-head"><span class="luck-name">CAG036</span><span class="luck-cd green">15</span></div>
+          <div class="luck-road-small">
+            <i class="r"></i><i class="r"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="r"></i>
+          </div>
+          <div class="luck-tag">长庄 · 赔率 1:0.95</div>
+          <div class="luck-quick">
+            <button class="qb banker" onclick="event.stopPropagation(); alert('快速下注 庄 1K');">庄 1K</button>
+            <button class="qb player" onclick="event.stopPropagation(); alert('快速下注 闲 1K');">闲 1K</button>
+            <span class="enter">进入本桌 ›</span>
+          </div>
+        </div>
+        <div class="luck-item" onclick="nav('bet'); closeAll();">
+          <div class="luck-head"><span class="luck-name">NPW12</span><span class="luck-cd red">4</span></div>
+          <div class="luck-road-small">
+            <i class="b"></i><i class="b"></i><i class="b"></i><i class="b"></i><i class="r"></i><i class="b"></i>
+          </div>
+          <div class="luck-tag">长闲 · 赔率 1:1</div>
+          <div class="luck-quick">
+            <button class="qb banker" onclick="event.stopPropagation(); alert('快速下注 庄 1K');">庄 1K</button>
+            <button class="qb player" onclick="event.stopPropagation(); alert('快速下注 闲 1K');">闲 1K</button>
+            <span class="enter">进入本桌 ›</span>
+          </div>
+        </div>
+        <div class="luck-item" onclick="nav('bet'); closeAll();">
+          <div class="luck-head"><span class="luck-name">SOL08</span><span class="luck-cd green">22</span></div>
+          <div class="luck-road-small">
+            <i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i>
+          </div>
+          <div class="luck-tag">BigRoad1Hop · 赔率 1:1</div>
+          <div class="luck-quick">
+            <button class="qb banker" onclick="event.stopPropagation(); alert('快速下注 庄 1K');">庄 1K</button>
+            <button class="qb player" onclick="event.stopPropagation(); alert('快速下注 闲 1K');">闲 1K</button>
+            <span class="enter">进入本桌 ›</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 玩法资讯 / 游戏规则弹窗 ============ -->
+  <div class="dialog" id="dlg-gameplay">
+    <div class="dbox gameplay">
+      <div class="dhdr">
+        <h3>游戏规则</h3>
+        <span class="close" onclick="closeDialog()">✕</span>
+      </div>
+      <div class="dbody">
+        <div class="section-title">一、玩法简介</div>
+        <p class="game-intro">
+          百家乐（Baccarat）是一种纸牌对抗游戏，由庄家（Banker）和闲家（Player）对决，玩家可押注<b>庄赢 / 闲赢 / 和</b>三种主结果，以及<b>庄对 / 闲对 / 幸运 6</b>等副注。每局使用 8 副共 416 张牌，10/J/Q/K 算 0 点，A 算 1 点，其他牌按点数计算，合计只取<b>个位数</b>（如 13 算 3 点）。
+        </p>
+
+        <div class="section-title">二、赔率表</div>
+        <!-- Sammy 2026-04-27：赔率表内部用"老虎"系列命名（仅信息展示层），M4 单桌投注区仍叫幸运 6（B1 决策不动） -->
+        <table class="odds-table">
+          <tr><th>玩法</th><th>说明</th><th>赔率</th></tr>
+          <tr><td>庄</td><td>庄家点数大过闲家</td><td>1 : 0.95</td></tr>
+          <tr><td>闲</td><td>闲家点数大过庄家</td><td>1 : 1</td></tr>
+          <tr><td>和</td><td>庄闲点数相同</td><td>1 : 8</td></tr>
+          <tr><td>庄对</td><td>庄家首两张牌同点</td><td>1 : 11</td></tr>
+          <tr><td>闲对</td><td>闲家首两张牌同点</td><td>1 : 11</td></tr>
+          <tr><td>小老虎 6</td><td>庄家以 2 张牌 6 点胜</td><td>1 : 22</td></tr>
+          <tr><td>大老虎 6</td><td>庄家以 3 张牌 6 点胜</td><td>1 : 50</td></tr>
+          <tr><td>老虎 6</td><td>庄家以 2 张牌 6 点胜<br>庄家以 3 张牌 6 点胜</td><td>1 : 12<br>1 : 20</td></tr>
+        </table>
+
+        <div class="section-title">三、闲 家 补 牌 规 则</div>
+        <table class="rule-table">
+          <tr><th>闲家前两张合计</th><th>操作</th></tr>
+          <tr><td>0 - 5</td><td>补第 3 张</td></tr>
+          <tr><td>6 - 7</td><td>Stand 停牌</td></tr>
+          <tr><td>8 - 9</td><td>Natural 天牌，直接比牌</td></tr>
+        </table>
+
+        <div class="section-title">四、庄 家 补 牌 规 则</div>
+        <table class="rule-table small">
+          <tr><th>庄前 2 张合计</th><th>闲第 3 张补牌条件</th></tr>
+          <tr><td>0 - 2</td><td>必补一张</td></tr>
+          <tr><td>3</td><td>闲 ≠ 8 时补</td></tr>
+          <tr><td>4</td><td>闲 2-7 时补</td></tr>
+          <tr><td>5</td><td>闲 4-7 时补</td></tr>
+          <tr><td>6</td><td>闲 6-7 时补</td></tr>
+          <tr><td>7</td><td>不补牌</td></tr>
+          <tr><td>8 - 9</td><td>Natural 天牌，直接比牌</td></tr>
+        </table>
+
+        <div class="section-title">五、胜负判定</div>
+        <p class="game-intro">
+          补牌后，比较庄家和闲家最终点数，<b>点数大者获胜</b>。如点数相同，则"和"注区获胜，"庄/闲"本金退还（Push）。"庄对/闲对"基于前 2 张是否同点判断，与胜负无关。
+        </p>
+
+        <div class="section-title">六、投注限制</div>
+        <p class="game-intro">
+          每桌有最小 / 最大投注限额（限红）显示在桌面。投注额超出限红将被拒绝。<b>倒计时结束前</b>投注有效，倒计时结束后下注区锁定，不接受新投注或撤注。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 视频源设置（SelectVideoQuality.tsx / flvPlayer.tsx 对齐）============ -->
+  <!-- 画质 2 档：value:0 超清（video.hd）/ value:1 高清（video.fhd）；线路数由 flvList 动态决定 -->
+  <div class="dialog" id="dlg-video">
+    <div class="dbox">
+      <div class="dhdr">
+        <span class="close" onclick="closeDialog()">✕</span>
+        <h3>视频源设置</h3>
+        <span class="save" onclick="closeDialog()">确定</span>
+      </div>
+      <div class="dbody">
+        <div class="section-title">清晰度</div>
+        <div class="video-quality-list">
+          <div class="vq-item active" data-q="0" onclick="pickVideoOpt(this, 'quality')">
+            <span class="vq-icon">🎥</span>
+            <span class="vq-name">超清</span>
+            <span class="vq-check">✓</span>
+          </div>
+          <div class="vq-item" data-q="1" onclick="pickVideoOpt(this, 'quality')">
+            <span class="vq-icon">🎥</span>
+            <span class="vq-name">高清</span>
+            <span class="vq-check">✓</span>
+          </div>
+        </div>
+
+        <div class="section-title">线路</div>
+        <div class="video-quality-list">
+          <div class="vq-item active" data-line="0" onclick="pickVideoOpt(this, 'line')">
+            <span class="vq-icon">🔗</span>
+            <span class="vq-name">线路 1</span>
+            <span class="vq-check">✓</span>
+          </div>
+          <div class="vq-item" data-line="1" onclick="pickVideoOpt(this, 'line')">
+            <span class="vq-icon">🔗</span>
+            <span class="vq-name">线路 2</span>
+            <span class="vq-check">✓</span>
+          </div>
+        </div>
+
+        <!-- C8.1 自动缩放（Sammy 2026-04-23 决策 + 2026-04-27 重申）：
+             开启后按桌台阶段自动切换视频画面大小 — 开始投注时缩小，停止投注时放大（查看牌型）；
+             和 B4 手动 🔍/🔎 缩放并存，自动 toggle 优先（手动可临时覆盖）；
+             实现：CSS transform:scale，订阅 stop_bet_at / DeskStatusChange / ShoeFinishCancelBetEvent 切换；
+             config.slice 新增 videoAutoZoom: boolean + localStorage 持久化，默认开 -->
+        <div class="section-title">自动缩放</div>
+        <div class="auto-zoom-row">
+          <div class="az-text">
+            <div class="az-name">自动缩放</div>
+            <div class="az-desc">投注阶段自动缩小 / 停止投注后自动放大查看牌型</div>
+          </div>
+          <span class="toggle on" id="autoZoomToggle" onclick="toggleAutoZoom(this)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ B11 开牌动画演示弹窗 ============ -->
+  <div class="dialog" id="dlg-flip">
+    <div class="flip-box">
+      <div class="flip-banner" id="flip-banner">
+        <span class="flip-cn">闲赢</span>
+        <span class="flip-en">PLAYER WIN</span>
+      </div>
+      <div class="flip-result">
+        <div class="flip-side p">
+          <div class="flip-label">闲 PLAYER</div>
+          <div class="flip-cards">
+            <div class="flip-card">K<br>♠</div>
+            <div class="flip-card">8<br>♥</div>
+          </div>
+          <div class="flip-point">8</div>
+        </div>
+        <div class="flip-vs">VS</div>
+        <div class="flip-side b">
+          <div class="flip-label">庄 BANKER</div>
+          <div class="flip-cards">
+            <div class="flip-card">5<br>♦</div>
+            <div class="flip-card">2<br>♣</div>
+          </div>
+          <div class="flip-point">7</div>
+        </div>
+      </div>
+      <button class="flip-close" onclick="closeDialog()">点击任意处关闭</button>
+    </div>
+  </div>
+
+  <!-- ============ C3 游戏记录抽屉（2026-04-24 按 Sammy 截图字段）============ -->
+  <div class="bottom-sheet" id="drawer-record">
+    <div class="bs-hdr">
+      <h3 style="flex:1; text-align:center;">游戏记录</h3>
+      <span class="close" onclick="closeOne('drawer-record')">✕</span>
+    </div>
+    <div class="record-warn">仅显示最新24小时内的游戏记录</div>
+    <div class="bs-body">
+      <table>
+        <thead>
+          <tr>
+            <th>投注时间</th>
+            <th>局号</th>
+            <th>投注内容</th>
+            <th>投注总额</th>
+            <th>投注状态</th>
+            <th>结果</th>
+            <th>上下数</th>
+            <th>开牌视频</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="time">20:53</td>
+            <td>ONBSB0...</td>
+            <td class="bet-content">庄</td>
+            <td class="amount">1万</td>
+            <td><span class="stat-cancel">撤单</span></td>
+            <td></td>
+            <td><span class="pl-zero">0万</span></td>
+            <td><span class="view">查看</span></td>
+          </tr>
+          <tr>
+            <td class="time">20:52</td>
+            <td>ONBSB0...</td>
+            <td class="bet-content">庄</td>
+            <td class="amount">5万</td>
+            <td><span class="stat-ok">成功</span></td>
+            <td><span class="result">闲赢</span></td>
+            <td><span class="pl-neg">-5万</span></td>
+            <td><span class="view">查看</span></td>
+          </tr>
+          <tr>
+            <td class="time">20:52</td>
+            <td>ONBSB0...</td>
+            <td class="bet-content">庄</td>
+            <td class="amount">7.3万</td>
+            <td><span class="stat-cancel">撤单</span></td>
+            <td><span class="result">闲赢</span></td>
+            <td><span class="pl-zero">0万</span></td>
+            <td><span class="view">查看</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- 底部：总上下数 + 导出按钮 -->
+    <div class="record-foot">
+      <span class="total">总上下数 <b>-5万</b></span>
+      <button class="export">↗ 导出</button>
+    </div>
+  </div>
+
+  <!-- ============ 系统设置抽屉 (B16) ============ -->
+  <div class="bottom-sheet" id="drawer-settings">
+    <div class="bs-hdr">
+      <h3>系统设置</h3>
+      <span class="close" onclick="closeOne('drawer-settings')">✕</span>
+    </div>
+    <div class="bs-body">
+      <div class="quick-3">
+        <div class="qcard" onclick="openDrawer('record')">
+          <div class="qi">📋</div><div class="ql" data-i18n="game-record">游戏记录</div>
+        </div>
+        <div class="qcard" onclick="openDialog('gameplay')">
+          <div class="qi">📖</div><div class="ql" data-i18n="game-rules">游戏规则</div>
+        </div>
+        <div class="qcard" onclick="openDialog('road')">
+          <div class="qi">🔥</div><div class="ql" data-i18n="good-roads">好路设置</div>
+        </div>
+        <span class="anno" style="top:-6px; left:50%; transform:translateX(-50%);">B16.2 3 卡快捷</span>
+      </div>
+      <div class="menu-list">
+        <div class="mi" onclick="openSubPage('hall-sub')">
+          <span class="mic">🏠</span><span class="ml">大厅设置</span><span class="mr">›</span>
+        </div>
+        <div class="mi" onclick="openDialog('chip')">
+          <span class="mic">🎲</span><span class="ml" data-i18n="chip-settings">筹码设置</span><span class="mr">›</span>
+        </div>
+        <div class="mi" onclick="openDialog('video')">
+          <span class="mic">📹</span><span class="ml" data-i18n="video-settings">视频源设置</span><span class="mr">›</span>
+        </div>
+        <div class="mi" onclick="openDialog('music')">
+          <span class="mic">🎵</span><span class="ml" data-i18n="music-settings">音乐设置</span><span class="mr">›</span>
+        </div>
+        <div class="mi" onclick="openSubPage('lang-sub')">
+          <span class="mic">🌐</span><span class="ml" data-i18n="language">语言设置</span><span class="mr" id="cur-lang-settings">简体中文 ›</span>
+        </div>
+        <div class="mi" onclick="openSubPage('security-sub')">
+          <span class="mic">🔒</span><span class="ml" data-i18n="security">安全设置</span><span class="mr">›</span>
+        </div>
+        <div class="mi" onclick="alert('切换皮肤 - B16.4 敬请期待')">
+          <span class="mic">🎨</span><span class="ml">切换皮肤</span><span class="mr">敬请期待</span>
+        </div>
+        <!-- 投注方式（现状 SelectBetMode.tsx / bet_model 枚举 1 点击式 / 2 确认式）-->
+        <div class="mi" onclick="openSubPage('betmode-sub')">
+          <span class="mic">🎯</span><span class="ml" data-i18n="bet-mode">投注方式</span><span class="mr" id="cur-betmode">确认式投注 ›</span>
+        </div>
+        <!-- 选择投注模式 已删（B9 下注区翻页已替代，Sammy 2026-04-24） -->
+        <!-- 用户信息 / 教程 已删（Sammy 2026-04-24 决策） -->
+        <div class="mi danger" onclick="nav('login')">
+          <span class="mic">🚪</span><span class="ml" data-i18n="logout">退出游戏</span><span class="mr"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 大厅设置二级页 (B16.3) ============ -->
+  <div class="sub-page" id="sub-hall-sub">
+    <div class="sp-hdr">
+      <span class="back" onclick="closeSubPage()">←</span>
+      <h3>系统设置</h3>
+    </div>
+    <div class="sp-body">
+      <div class="settings-row">
+        <span class="rl">好路提醒</span>
+        <span class="toggle on" onclick="this.classList.toggle('on')"></span>
+      </div>
+      <div class="settings-row">
+        <span class="rl">轮播广告</span>
+        <span class="toggle on" onclick="this.classList.toggle('on')"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 安全设置二级页 (B16.7) ============ -->
+  <!-- ============ 投注方式子页（SelectBetMode.tsx / bet_model 枚举 1/2）============ -->
+  <!-- i18n: selectBetMode:title "请选择您的投注方式" / confirmMode / clickMode -->
+  <div class="sub-page" id="sub-betmode-sub">
+    <div class="sp-hdr">
+      <span class="back" onclick="closeSubPage()">←</span>
+      <h3>投注方式</h3>
+    </div>
+    <div class="sp-body">
+      <div class="gm-opt active" data-mode="确认式投注" data-value="2" onclick="pickBetMode(this)">
+        <div class="gm-main">
+          <div class="gm-name">确认式投注</div>
+          <div class="gm-desc">选择筹码投注后需要您点击确认来完成投注</div>
+        </div>
+        <span class="gm-check">✓</span>
+      </div>
+      <div class="gm-opt" data-mode="点击式投注" data-value="1" onclick="pickBetMode(this)">
+        <div class="gm-main">
+          <div class="gm-name">点击式投注</div>
+          <div class="gm-desc">选择筹码直接点击投注项即可投注成功</div>
+        </div>
+        <span class="gm-check">✓</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 语言设置子页（C11 ZH/EN/KR）============ -->
+  <div class="sub-page" id="sub-lang-sub">
+    <div class="sp-hdr">
+      <span class="back" onclick="closeSubPage()">←</span>
+      <h3>语言设置</h3>
+    </div>
+    <div class="sp-body">
+      <div class="lang-opt-row active" data-lang="简体中文" onclick="pickLangFromSettings(this)">
+        <span class="lang-flag">🇨🇳</span>
+        <span class="lang-name">简体中文</span>
+        <span class="lang-check">✓</span>
+      </div>
+      <div class="lang-opt-row" data-lang="English" onclick="pickLangFromSettings(this)">
+        <span class="lang-flag">🇺🇸</span>
+        <span class="lang-name">English</span>
+        <span class="lang-check">✓</span>
+      </div>
+      <div class="lang-opt-row" data-lang="한국어" onclick="pickLangFromSettings(this)">
+        <span class="lang-flag">🇰🇷</span>
+        <span class="lang-name">한국어</span>
+        <span class="lang-check">✓</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-page" id="sub-security-sub">
+    <div class="sp-hdr">
+      <span class="back" onclick="closeSubPage()">←</span>
+      <h3>安全设置</h3>
+    </div>
+    <div class="sp-body">
+      <div class="settings-row" onclick="alert('修改密码 C5\\n旧密码 × 1\\n新密码 × 2\\n确定/取消')">
+        <span class="rl">修改密码</span>
+        <span>›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ C7 筹码设置 ============ -->
+  <div class="dialog" id="dlg-chip">
+    <div class="dbox">
+      <div class="dhdr">
+        <span class="close" onclick="closeDialog()">✕</span>
+        <h3>筹码设置</h3>
+        <span class="save" onclick="closeDialog()">确定</span>
+      </div>
+      <div class="dbody">
+        <!-- Sammy 2026-04-27 拍板：彻底回归现状 ChipStyle.tsx 实现：2 选 1 切换筹码渲染样式（数字 vs 缩写）
+             现状字段：config.slice.chipType: '0' | 'k'
+             现状图片源：numberChips / abbreviationChips（KRW 时切 numberKrwChips / abbreviationKrwChips）.slice(3,7) 4 张预览
+             删除：3 选 1 中文样式、已选筹码、全量候选池、自定义输入面额 — 现状均无 -->
+        <div class="section-title">筹码样式</div>
+        <div class="chip-style-row">
+          <div class="cs active" data-type="0" onclick="pickChipStyle(this)">
+            <div class="cs-preview">
+              <span class="chip-preview chip-num c-3">5K</span>
+              <span class="chip-preview chip-num c-4">10K</span>
+              <span class="chip-preview chip-num c-5">50K</span>
+              <span class="chip-preview chip-num c-6">100K</span>
+            </div>
+            <div class="cs-label">数字（千/万缩写）</div>
+          </div>
+          <div class="cs" data-type="k" onclick="pickChipStyle(this)">
+            <div class="cs-preview">
+              <span class="chip-preview chip-abbr c-3">5K</span>
+              <span class="chip-preview chip-abbr c-4">10K</span>
+              <span class="chip-preview chip-abbr c-5">50K</span>
+              <span class="chip-preview chip-abbr c-6">100K</span>
+            </div>
+            <div class="cs-label">缩写（K/M）</div>
+          </div>
+        </div>
+        <div class="section-title" style="margin-top:18px;">常用筹码选择 <span class="hint" id="custom-chips-count">11 / 11</span></div>
+        <!-- Sammy 2026-04-27 Q23 修订：合并现状 menu-bar.tsx "自定筹码" 到系统设置；
+             现状 config.slice.selectedChips: number[]（默认 [0..10] 全选）；至少保留 5 个；
+             触发原现状 dispatch(setSelectedChips(tempChipList))；
+             M4 单桌 menu-bar 的 ⚙ chipSettingImg 入口保留（双入口共享同一 state） -->
+        <div class="custom-chips-grid" id="custom-chips-grid"></div>
+        <div class="hint small">最少保留 5 个；已选筹码会出现在下注栏（M4 单桌筹码条）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ C9 音乐设置 ============ -->
+  <div class="dialog" id="dlg-music">
+    <div class="dbox">
+      <div class="dhdr">
+        <span class="close" onclick="closeDialog()">✕</span>
+        <h3>音乐设置</h3>
+        <span></span>
+      </div>
+      <div class="dbody">
+        <div class="sound-row">
+          <span class="sl">一键开关</span>
+          <span class="toggle on" onclick="this.classList.toggle('on')"></span>
+        </div>
+        <div class="sound-row">
+          <span class="sl">背景音乐</span>
+          <input type="range" min="0" max="100" value="60" />
+          <span class="toggle on" onclick="this.classList.toggle('on')"></span>
+        </div>
+        <div class="sound-row">
+          <span class="sl">游戏音效</span>
+          <input type="range" min="0" max="100" value="80" />
+          <span class="toggle on" onclick="this.classList.toggle('on')"></span>
+        </div>
+        <div class="section-title" style="margin-top:16px;">
+          ℹ️ 游戏音效包含：下注音 / 开牌音 / 发牌音 / 倒计时提示音 / 赢钱音 等，不再分子项
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ C12 好路设置 ============ -->
+  <div class="dialog" id="dlg-road">
+    <div class="dbox">
+      <div class="dhdr">
+        <span class="close" onclick="closeDialog()">✕</span>
+        <h3>好路设置</h3>
+        <span class="save" onclick="closeDialog()">保存</span>
+      </div>
+      <div class="dbody">
+        <div class="road-grid">
+          <div class="road-card selected" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">长庄</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card selected" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">长闲</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">拍拍黐</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card selected" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">大路单跳</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">大路双跳</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">一庄两闲</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">一闲两庄</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">逢庄黐</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">逢闲黐</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">隔黐庄</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">隔黐闲</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="road-card" onclick="this.classList.toggle('selected')">
+            <span class="check"></span>
+            <div class="rname">其他路型</div>
+            <div class="mini"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+        <div class="section-title" style="margin-top:12px;">
+          ℹ️ 12 路型对应 HotRoadType 枚举，和大厅路型自动标签 / 多桌路型标签同源共享
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 桌台限红弹窗（Sammy 2026-04-27 截图）============ -->
+  <!-- 现状代码 components/common/selectPicker.tsx + table.tsx L486-509 弹"桌台限红"，4 列（注区/您的限红/桌台限红/可下注区间）
+       Sammy 截图改为简化 2 列（注区/可下注区间），4 行：庄/闲、和、对子、幸运6
+       触发：大厅桌台卡片 limit 点击 + M4 桌信息栏限红胶囊点击 -->
+  <div class="dialog" id="dlg-table-limit">
+    <div class="dbox">
+      <div class="dhdr">
+        <span class="close" onclick="closeDialog()">✕</span>
+        <h3>桌台限红</h3>
+        <span style="width:30px;"></span>
+      </div>
+      <div class="dbody">
+        <table class="odds-table">
+          <tr><th>注区</th><th>可下注区间</th></tr>
+          <tr><td>庄/闲</td><td>10K - 1.5M</td></tr>
+          <tr><td>和</td><td>500 - 200K</td></tr>
+          <tr><td>对子</td><td>500 - 200K</td></tr>
+          <tr><td>幸运 6</td><td>500 - 200K</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ===== Router (hash-based) =====
+  function nav(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const el = document.getElementById('page-' + name);
+    if (el) el.classList.add('active');
+    // Update debug-bar active state
+    document.querySelectorAll('.debug-bar button').forEach(b => b.classList.remove('active'));
+    const btn = Array.from(document.querySelectorAll('.debug-bar button')).find(b => b.textContent.includes(({loading:'加载',login:'登录',plan:'交收方案',hall:'大厅',bet:'单桌',multi:'多桌'})[name] || ''));
+    if (btn) btn.classList.add('active');
+    closeAll();
+    // 进入 plan 页时复位选中态（对应现状 L33 useState('-1')）
+    if (name === 'plan') planResetSelection();
+    location.hash = '#/' + name;
+    updateFigmaPanel(name);
+    // Sammy 2026-04-27：标记当前 page 用于演示控件 fixed 定位的显隐
+    document.body.setAttribute('data-page', name);
+  }
+
+  // ===== M2 Plan 页交互（沿用现状 views/plan/index.tsx 逻辑）=====
+  // 现状 state：tradeId（默认 '-1'）；点 li 触发 onClick(trade_type_id) → setTradeId
+  // 现状 submit：dispatch(chooseTradeType) → 失败 g-10021 弹冲突框 / 成功 intoGameHall
+  // 现状 logout：dispatch(apiLogout) → 退登
+  let planSelectedId = '-1';
+  function planResetSelection() {
+    planSelectedId = '-1';
+    document.querySelectorAll('#page-plan .plan-item').forEach(el => el.classList.remove('active'));
+    const btn = document.getElementById('planConfirmBtn');
+    if (btn) btn.disabled = true;
+  }
+  function planSelect(tid) {
+    planSelectedId = tid;
+    document.querySelectorAll('#page-plan .plan-item').forEach(el => el.classList.remove('active'));
+    const target = document.querySelector(`#page-plan .plan-item[data-tid="${tid}"]`);
+    if (target) target.classList.add('active');
+    const btn = document.getElementById('planConfirmBtn');
+    if (btn) btn.disabled = false;
+  }
+  function planSubmit() {
+    if (planSelectedId === '-1') return;
+    // 演示开关：模拟 g-10021 传统模式冲突
+    const conflict = document.getElementById('planDemoConflict')?.checked;
+    if (conflict) {
+      planShowConflictDialog();
+      return;
+    }
+    // 现状成功路径：chooseTradeType → setPayType → intoGameHall（getBalance + getPlayerLimit + nav '/'）
+    nav('hall');
+  }
+  function planLogout() {
+    // 现状无二次确认；点击直接 dispatch(apiLogout)；这里直接回登录页演示
+    nav('login');
+  }
+  function planShowConflictDialog() {
+    // 现状 L80-107：dialog({ title:'退出传统模式', message:`您已申请{deskNo}桌台的专属服务，请先退出再进入`, buttons:[{ action: quitTraditionMod }] })
+    document.getElementById('plan-conflict-dialog').classList.add('open');
+    document.getElementById('mask').classList.add('open');
+  }
+  function planConflictConfirm() {
+    // 现状成功：quitTraditionMod 成功 → message.success → onAnimationend: submit 重试
+    document.getElementById('plan-conflict-dialog').classList.remove('open');
+    document.getElementById('mask').classList.remove('open');
+    nav('hall');
+  }
+  function planConflictCancel() {
+    document.getElementById('plan-conflict-dialog').classList.remove('open');
+    document.getElementById('mask').classList.remove('open');
+  }
+
+  // ===== M3 大厅页交互（沿用现状 views/home/index.tsx 竖屏分支 + statusWrap.tsx + onChooseTable）=====
+  function hallShowToast(msg) {
+    const t = document.getElementById('hall-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1800);
+  }
+  // 演示模拟"当前桌"信息（现状从 URL /bet/:deskId + state.bet.deskInfo 来）
+  let hallPendingTarget = null;
+  function hallChooseTable(card) {
+    const state = card.getAttribute('data-state');
+    const deskId = card.getAttribute('data-desk-id');
+    const mode = card.getAttribute('data-mode');  // basic / fast
+    // 现状 statusWrap.tsx + table.tsx onChooseTable 多分支判断
+    if (state === 'maintain') {
+      // L32-34：message.error(t('errMsgs:DeskNotOpen'))
+      hallShowToast('桌台未开放');
+      return;
+    }
+    if (state === 'vip') {
+      // L60-75：dispatch(setShowReserveTable(true)) + setReserveDeskId
+      hallVipOpen(deskId);
+      return;
+    }
+    // 演示开关：模拟用户已申请传统模式（apply_basic_ing=Passed）+ 在 bet 页
+    const demoBasic = document.getElementById('hallDemoBasic')?.checked;
+    if (demoBasic) {
+      if (deskId === '70') {
+        // 假设当前坐在 H070，点自己无意义
+        return;
+      }
+      if (mode === 'basic') {
+        // Q4 / 现状 L189-217：game_mod=BasicGame → changeTableConfirm
+        const targetClub = card.querySelector('.club-logo')?.textContent || '-';
+        const targetDesk = card.querySelector('.tlabel')?.textContent || '-';
+        const sameClub = targetClub === 'OK';  // 假设当前 H070 在 OK 赌厅
+        hallChangeOpen({club: targetClub, desk: targetDesk, sameClub});
+        hallPendingTarget = card;
+        return;
+      }
+      // Q5 / 现状 L219-227：game_mod=FastGame + apply_basic_ing=Passed/Applying → message.error
+      hallShowToast('传统模式玩家不能切换玩法');
+      return;
+    }
+    if (state === 'shoe' || state === 'weishu') {
+      // L90 / L103：直接 onTableChoose(desk_id) → enter() → navigate
+      nav('bet');
+      return;
+    }
+    // normal：onTableChoose → leave(old) → enter(new) → navigate(`/bet/${desk_id}`)
+    nav('bet');
+  }
+
+  // ===== Q7 nats 推送演示（模拟 LobbyGameEvent + receiveDeskInfo 桌台数据更新）=====
+  let hallNatsTimer = null;
+  function hallToggleNats(on) {
+    if (on) {
+      hallNatsTimer = setInterval(hallNatsTick, 1000);
+    } else {
+      if (hallNatsTimer) clearInterval(hallNatsTimer);
+      hallNatsTimer = null;
+    }
+  }
+  function hallNatsTick() {
+    document.querySelectorAll('#page-hall .tcard').forEach(card => {
+      // 倒计时 sm-cd（现状 stop_bet_at - now()，countdown 减秒）
+      const cd = card.querySelector('.sm-cd');
+      if (cd && card.getAttribute('data-state') === 'normal') {
+        let n = parseInt(cd.textContent) || 0;
+        n = n <= 0 ? 30 : n - 1;
+        cd.textContent = n;
+        cd.classList.toggle('red', n < 5);
+      }
+      // 路图随机加点（现状 history_result 推送）：随机给某个 .roads 内的 i 上色
+      if (Math.random() > 0.7) {
+        const dots = card.querySelectorAll('.roads i:not(.r):not(.b)');
+        if (dots.length > 0) {
+          const target = dots[Math.floor(Math.random() * Math.min(dots.length, 5))];
+          target.classList.add(Math.random() > 0.5 ? 'r' : 'b');
+        }
+      }
+    });
+  }
+
+  // ===== Q6 分页加载（IntersectionObserver 沿用现状 table.tsx L310-318）=====
+  let hallPageLoaded = 1;  // 现状 startIndex state，每次 +1 → slice(0, (startIndex+1)*5)
+  function hallInitPaging() {
+    const grid = document.querySelector('#page-hall .table-grid');
+    if (!grid) return;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && hallPageLoaded < 3) {  // 模拟 3 页就够
+          hallLoadMore();
+        }
+      });
+    }, { threshold: 0.1 });
+    // 监听最后一张卡
+    const last = grid.querySelector('.tcard:last-of-type');
+    if (last) observer.observe(last);
+  }
+  // ===== M4 视频源放大缩小（Sammy 2026-04-25 校正：5 icons 中的 🔍） =====
+  // 现状代码 TopBar 没有此 icon（现状是"刷新"）；目标态新增"放大缩小视频源"
+  function toggleVideoZoom() {
+    const v = document.querySelector('#page-bet .bet-video');
+    if (!v) return;
+    v.classList.toggle('zoomed');
+    // 演示：放大态视觉缩放视频流容器，再次点击恢复
+  }
+  function hallLoadMore() {
+    const grid = document.querySelector('#page-hall .table-grid');
+    if (!grid) return;
+    hallPageLoaded++;
+    const baseId = 75 + (hallPageLoaded - 1) * 3;
+    // 加 3 张占位卡（模拟下一页；现状每页 5 张，原型简化为 3）
+    for (let i = 0; i < 3; i++) {
+      const id = baseId + i + 1;
+      const card = document.createElement('div');
+      card.className = 'tcard';
+      card.setAttribute('data-state', 'normal');
+      card.setAttribute('data-mode', 'fast');
+      card.setAttribute('data-desk-id', id);
+      card.setAttribute('data-club', '3');
+      card.setAttribute('onclick', 'hallChooseTable(this)');
+      card.innerHTML = `
+        <div class="sm-cd">${20 + Math.floor(Math.random() * 10)}</div>
+        <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 ${id}</span><span class="tnum">0</span><span class="limit range" onclick="event.stopPropagation();openDialog('table-limit')">0.1-100K</span></div>
+        <div class="stats7">
+          <span class="cell l-j"><span class="tag">局</span><b>30</b></span><span class="cell l-zh"><span class="tag">庄</span><b>15</b></span><span class="cell l-xi"><span class="tag">闲</span><b>12</b></span><span class="cell l-he"><span class="tag">和</span><b>3</b></span>
+          <span class="cell l-zd"><span class="tag">庄对</span><b>2</b></span><span class="cell l-xd"><span class="tag">闲对</span><b>3</b></span><span class="cell l-lk"><span class="tag">幸运6</span><b>0</b></span>
+        </div>
+        <div class="roads"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      `;
+      grid.appendChild(card);
+    }
+    // 提示加载
+    hallShowToast('已加载下一页（演示分页）');
+  }
+  function hallChangeOpen({club, desk, sameClub}) {
+    // 现状 changeTableConfirm L243：clubId !== club_id 时显示"切换赌场将先结束当前游戏"
+    document.getElementById('change-cross-club').style.display = sameClub ? 'none' : 'block';
+    document.getElementById('change-target-club').textContent = club;
+    document.getElementById('change-target-desk').textContent = desk;
+    document.getElementById('hall-change-dialog').classList.add('open');
+    document.getElementById('mask').classList.add('open');
+  }
+  function hallChangeCancel() {
+    document.getElementById('hall-change-dialog').classList.remove('open');
+    document.getElementById('mask').classList.remove('open');
+    hallPendingTarget = null;
+  }
+  function hallChangeConfirm() {
+    // 现状 L270-276：await gameAPI.changeDesk({old_desk_id, new_desk_id}) + Communicator.action('show_wait_better')
+    document.getElementById('hall-change-dialog').classList.remove('open');
+    document.getElementById('mask').classList.remove('open');
+    // 演示：直接进 bet（实际现状是等枪手 betterDealChange 推送）
+    hallShowToast('已发送换桌请求，等待枪手处理...');
+    setTimeout(() => nav('bet'), 1200);
+    hallPendingTarget = null;
+  }
+  function hallVipOpen(deskId) {
+    document.getElementById('vip-desk-id').textContent = deskId;
+    document.getElementById('vip-pwd').value = '';
+    document.getElementById('vip-pwd-err').style.display = 'none';
+    document.getElementById('vip-confirm-btn').disabled = true;
+    document.getElementById('hall-vip-dialog').classList.add('open');
+    document.getElementById('mask').classList.add('open');
+  }
+  function hallVipCancel() {
+    document.getElementById('hall-vip-dialog').classList.remove('open');
+    document.getElementById('mask').classList.remove('open');
+  }
+  function hallVipPwdInput() {
+    const pwd = document.getElementById('vip-pwd').value;
+    // 现状 packageTableModal:passwordRequirements："密码需 6-10 位数字"
+    const valid = /^\d{6,10}$/.test(pwd);
+    document.getElementById('vip-confirm-btn').disabled = !valid;
+    const err = document.getElementById('vip-pwd-err');
+    if (pwd && !valid) {
+      err.textContent = '密码需 6-10 位数字';
+      err.style.display = 'block';
+    } else {
+      err.style.display = 'none';
+    }
+  }
+  function hallVipConfirm() {
+    // 现状：gameAPI.applyVipDesk({desk_id, desk_pwd}) → 成功 enter() → navigate
+    // 演示直接进 bet
+    hallVipCancel();
+    nav('bet');
+  }
+  // 限红选择器（SelectPicker 现状 table.tsx L498 setState({showLimit: !showLimit}) + L532-538）
+  function showLimitPicker(triggerEl) {
+    const pop = document.getElementById('limit-popover');
+    const rect = triggerEl.getBoundingClientRect();
+    const containerRect = document.querySelector('#page-hall').getBoundingClientRect();
+    pop.style.top = (rect.bottom - containerRect.top + 4) + 'px';
+    pop.style.right = (containerRect.right - rect.right) + 'px';
+    pop.style.left = 'auto';
+    pop.classList.add('show');
+    // 标记当前激活项（mocked）
+    pop.querySelectorAll('.lp-item').forEach((it, i) => {
+      it.classList.toggle('active', it.textContent === triggerEl.textContent.trim());
+      it.onclick = () => {
+        triggerEl.textContent = it.textContent;
+        pop.classList.remove('show');
+      };
+    });
+    // 点外面关闭
+    setTimeout(() => {
+      document.addEventListener('click', closeLimitPickerOnce, { once: true });
+    }, 0);
+  }
+  function closeLimitPickerOnce(e) {
+    if (!e.target.closest('.limit-popover') && !e.target.closest('.limit')) {
+      document.getElementById('limit-popover').classList.remove('show');
+    }
+  }
+
+  // ===== Drawer =====
+  // 栈式逻辑（Sammy 2026-04-27 决策）：从 settings 抽屉里打开子级（游戏记录 / 小费等）
+  // 父抽屉保留 open 状态，子级 z-index 更高（CSS：#drawer-record/#drawer-tip = 130）覆盖父
+  // 关闭子级（× 按钮 → closeOne）只关当前，父抽屉自然显现
+  // mask 点击 → closeAll（用户主动一键 dismiss 全部栈）
+  function openDrawer(key) {
+    document.getElementById('mask').classList.add('open');
+    if (key === 'settings') {
+      document.getElementById('drawer-settings').classList.add('open');
+      updateFigmaPanel('settings');
+    } else if (key === 'record') {
+      document.getElementById('drawer-record').classList.add('open');
+    } else if (key === 'tip') {
+      document.getElementById('drawer-tip').classList.add('open');
+    }
+  }
+  // 只关一个 drawer（栈式：保留父级），最后一个 drawer 关闭时再 hide mask
+  function closeOne(id) {
+    document.getElementById(id).classList.remove('open');
+    const stillOpen = document.querySelectorAll('.bottom-sheet.open, .side-drawer.open, .dialog.open, .sub-page.open').length;
+    if (stillOpen === 0) {
+      document.getElementById('mask').classList.remove('open');
+    }
+  }
+  function closeAll() {
+    document.getElementById('mask').classList.remove('open');
+    document.querySelectorAll('.bottom-sheet').forEach(b => b.classList.remove('open'));
+    document.querySelectorAll('.dialog').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.sub-page').forEach(s => s.classList.remove('open'));
+    document.querySelectorAll('.side-drawer').forEach(s => s.classList.remove('open'));
+  }
+
+  // ===== SubPage（Sammy 2026-04-27：抽屉风格 70% + 滑入动画）=====
+  function openSubPage(id) {
+    const el = document.getElementById('sub-' + id);
+    el.classList.add('open');
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('anim')));
+    updateFigmaPanel(id); // id = 'hall-sub' | 'security-sub'
+  }
+  function closeSubPage() {
+    document.querySelectorAll('.sub-page.open').forEach(s => s.classList.remove('anim'));
+    setTimeout(() => {
+      document.querySelectorAll('.sub-page').forEach(s => s.classList.remove('open'));
+    }, 300);
+    // 回到抽屉层的对照图
+    updateFigmaPanel('settings');
+  }
+
+  // ===== Dialog (chip/music/road/gameplay/flip) =====
+  function openDialog(key) {
+    const el = document.getElementById('dlg-' + key);
+    el.classList.add('open');
+    // 双 raf 确保 display:flex 之后 layout 完成，再加 anim class 触发 transform transition（Sammy 2026-04-27 抽屉式）
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('anim')));
+    if (['chip','music','road'].includes(key)) updateFigmaPanel(key);
+  }
+  function closeDialog() {
+    // 先去 anim 让 dbox 滑出，300ms 过渡完再 display:none
+    document.querySelectorAll('.dialog.open').forEach(d => d.classList.remove('anim'));
+    setTimeout(() => {
+      document.querySelectorAll('.dialog').forEach(d => d.classList.remove('open'));
+      updateFigmaPanel('settings');
+    }, 300);
+  }
+
+  // ===== 侧拉抽屉（B3 切桌 / B7 好路）=====
+  function openSideDrawer(key) {
+    document.getElementById('mask').classList.add('open');
+    document.getElementById('drawer-' + key).classList.add('open');
+  }
+
+  // ===== B5 小费累加 =====
+  let tipTotal = 0;
+  function addTip(v) {
+    tipTotal += v;
+    const el = document.getElementById('tip-value');
+    if (el) el.textContent = tipTotal.toLocaleString();
+  }
+  function resetTip() {
+    tipTotal = 0;
+    const el = document.getElementById('tip-value');
+    if (el) el.textContent = '0';
+  }
+
+  // ===== C7 筹码设置（Sammy 2026-04-27 Q23 修订）=====
+  // 1) 顶部 2 选 1 切换筹码渲染样式（现状 ChipStyle.tsx：config.slice.chipType: '0'|'k'）
+  // 2) 下方"常用筹码选择"区合并自现状 menu-bar.tsx "自定筹码"（config.slice.selectedChips: number[]）
+  function pickChipStyle(el) {
+    document.querySelectorAll('.chip-style-row .cs').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    // 现状代码逻辑：dispatch(setChipType(el.dataset.type))
+  }
+
+  // 现状 chipsUnit 11 档（KRW 自动 ×200）；这里用人民币展示标签
+  const CHIPS_UNIT_LABELS = ['25', '50', '100', '500', '1K', '5K', '10K', '50K', '100K', '500K', '1M'];
+  // 现状 config.slice.selectedChips 默认 [0..10] 全选
+  let customChipIdx = [0,1,2,3,4,5,6,7,8,9,10];
+
+  function renderCustomChips() {
+    const grid = document.getElementById('custom-chips-grid');
+    const cnt = document.getElementById('custom-chips-count');
+    if (!grid) return;
+    grid.innerHTML = CHIPS_UNIT_LABELS.map((v, i) => {
+      const sel = customChipIdx.includes(i);
+      return '<div class="cc' + (sel ? ' selected' : '') + '" onclick="toggleCustomChip(' + i + ')">' + v + (sel ? '<span class="check">✓</span>' : '') + '</div>';
+    }).join('');
+    if (cnt) cnt.textContent = customChipIdx.length + ' / 11';
+  }
+  function toggleCustomChip(i) {
+    const idx = customChipIdx.indexOf(i);
+    if (idx >= 0) {
+      // 现状逻辑（menu-bar.tsx L579）：tempChipList.length > 5 才能移除
+      if (customChipIdx.length <= 5) { alert('至少保留 5 个'); return; }
+      customChipIdx.splice(idx, 1);
+    } else {
+      customChipIdx.push(i);
+    }
+    renderCustomChips();
+  }
+  document.addEventListener('DOMContentLoaded', () => setTimeout(renderCustomChips, 100));
+
+  // ===== M4 收起路图 toggle + 联动对照 Figma =====
+  // ===== 筹码选中 + 下注块点击高亮 =====
+  function pickChip(el) {
+    document.querySelectorAll('.chip-bar .chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function tapBetCell(el) {
+    el.classList.add('bet-hit');
+    setTimeout(() => el.classList.remove('bet-hit'), 400);
+    // 更新 bet-meta 示意
+    const meta = el.querySelector('.bet-meta');
+    if (meta) {
+      const activeChip = document.querySelector('.chip-bar .chip.active');
+      const val = activeChip ? activeChip.textContent.trim() : '1K';
+      meta.innerHTML = '<span>👤 1</span><span>+'+val+' 🪙</span>';
+    }
+    // 业务逻辑联动（Sammy 2026-04-24）
+    const isConfirm = document.body.classList.contains('confirm-mode');
+    if (isConfirm) {
+      // 确认式：点下注区 → 进入待确认态，第 3 按钮切换成"确认"
+      hasPendingBet = true;
+    } else {
+      // 点击式：直接下注成功
+      hasPlacedBet = true;
+    }
+    updateOpsButton();
+  }
+
+  function toggleBetCollapse() {
+    document.body.classList.toggle('bet-collapsed');
+    const isCollapsed = document.body.classList.contains('bet-collapsed');
+    const title = document.getElementById('figma-title');
+    if (title && (title.textContent.indexOf('M4') >= 0 || title.textContent.indexOf('单桌') >= 0)) {
+      updateFigmaPanel(isCollapsed ? 'bet-collapsed' : 'bet');
+    }
+  }
+
+  // ===== B11 开牌动画演示 =====
+  function showFlip(result) {
+    const banner = document.getElementById('flip-banner');
+    const map = {
+      player: { cn:'闲赢', en:'PLAYER WIN', bg:'linear-gradient(90deg,#0083ff,#4f8af6)' },
+      banker: { cn:'庄赢', en:'BANKER WIN', bg:'linear-gradient(90deg,#ff1921,#ef5757)' },
+      tie:    { cn:'和',   en:'TIE',        bg:'linear-gradient(90deg,#00c500,#2da82d)' },
+    };
+    const r = map[result] || map.player;
+    banner.querySelector('.flip-cn').textContent = r.cn;
+    banner.querySelector('.flip-en').textContent = r.en;
+    banner.style.background = r.bg;
+    openDialog('flip');
+  }
+
+  // ===== H5 赌厅 Tab 点击切换 + H3 Banner 联动 =====
+  // Sammy 暂只上传单张 banner，所有 Tab 共用；后续差异化时改这里映射
+  const bannerMap = {
+    '全部赌场': { file:'banner-all.png', text:'NEWPORT WORLD RESORTS · 广告位' },
+    'Newport':  { file:'banner-all.png', text:'NEWPORT WORLD RESORTS' },
+    'ONEKEY':   { file:'banner-all.png', text:'CASINO ONEKEY' },
+    'CAGAYAN':  { file:'banner-all.png', text:'CAGAYAN · HOLIDAY & LEISURE RESORT PHILIPPINES' },
+    'Solaire':  { file:'banner-all.png', text:'SOLAIRE RESORT ENTERTAINMENT' },
+  };
+  function pickTab(el) {
+    const parent = el.parentElement;
+    if (!parent) return;
+    parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    // 提取 Tab 名（去除角标文字如 "60"）
+    const tabText = el.childNodes[0] && el.childNodes[0].nodeValue ? el.childNodes[0].nodeValue.trim() : el.textContent.replace(/\d+/g,'').trim();
+    const entry = bannerMap[tabText];
+    const img = document.getElementById('banner-img');
+    const fb = document.getElementById('banner-fallback');
+    if (img && entry) {
+      img.classList.remove('hide');
+      img.src = 'figma/banners/' + entry.file + '?t=' + Date.now();
+      if (fb) fb.textContent = entry.text;
+    }
+  }
+
+  // ===== H13 桌台类型下拉 / H6 排序下拉 =====
+  function toggleSortMenu(e, key) {
+    e && e.stopPropagation();
+    // 关闭其他 sort-menu
+    document.querySelectorAll('.hall-sort .sort-menu').forEach(m => {
+      if (m.id !== key + '-menu') m.classList.remove('open');
+    });
+    document.getElementById(key + '-menu').classList.toggle('open');
+  }
+  function pickSort(e, key, val) {
+    e && e.stopPropagation();
+    document.getElementById(key + '-label').textContent = val;
+    document.getElementById(key + '-menu').classList.remove('open');
+    // H13 桌台类型筛选：对齐现状 deskPickOptions.game_mod（1=快速 / 2=传统 / 0=全部）
+    // 现状逻辑 views/home/index.tsx L200-292 useMemo renderDesks 按 club_id + game_mod + sort_rule 过滤
+    if (key === 'desk-type') {
+      hallApplyDeskTypeFilter(val);
+    }
+    // H6 排序：默认 / 低至高 / 高至低（现有 sort_rule '' / 'asc' / 'desc'）/ 好路（新增）
+    if (key === 'sort-rule') {
+      hallApplySortRule(val);
+    }
+  }
+  function hallApplySortRule(val) {
+    // 演示版：根据卡片 .limit 文字解析金额范围排序；好路则按是否含 luck 标签置顶
+    // 现状真实排序：deskPickOptions.sort_rule + hot_road_count 字段
+    const grid = document.querySelector('#page-hall .table-grid');
+    if (!grid) return;
+    const cards = Array.from(grid.querySelectorAll('.tcard'));
+    const parseLow = (txt) => {
+      if (!txt || txt.includes('无限红')) return Number.MAX_SAFE_INTEGER;
+      const m = txt.match(/([\d.]+)/);
+      return m ? parseFloat(m[1]) : Number.MAX_SAFE_INTEGER;
+    };
+    if (val === '低至高') {
+      cards.sort((a, b) => parseLow(a.querySelector('.limit')?.textContent || '')
+                          - parseLow(b.querySelector('.limit')?.textContent || ''));
+    } else if (val === '高至低') {
+      cards.sort((a, b) => parseLow(b.querySelector('.limit')?.textContent || '')
+                          - parseLow(a.querySelector('.limit')?.textContent || ''));
+    } else if (val === '好路') {
+      // 演示：把"好路推荐"区里出现过的桌号 / 含路型 tag 的桌台排前面
+      // 现状真实逻辑：把 luckRoads 字段里的 desk_no 排前
+      cards.sort((a, b) => {
+        const aLuck = (a.querySelector('.tag')?.textContent || '').match(/长庄|长闲|双跳/) ? 1 : 0;
+        const bLuck = (b.querySelector('.tag')?.textContent || '').match(/长庄|长闲|双跳/) ? 1 : 0;
+        return bLuck - aLuck;
+      });
+    }
+    // 默认：恢复原始 DOM 顺序（用 data-desk-id 升序）
+    if (val === '默认') {
+      cards.sort((a, b) => parseInt(a.getAttribute('data-desk-id') || '0')
+                          - parseInt(b.getAttribute('data-desk-id') || '0'));
+    }
+    cards.forEach(c => grid.appendChild(c));
+  }
+  function hallApplyDeskTypeFilter(val) {
+    // 演示版：根据卡片 data-state（normal/shoe/vip/maintain）和 tlabel 文字（"快速桌台"/"传统桌台"）过滤
+    // 现状真实过滤是 desk_vo.filter(d => d.game_mod === selectedGameMod)
+    document.querySelectorAll('#page-hall .tcard').forEach(card => {
+      const label = (card.querySelector('.tlabel')?.textContent || '').trim();
+      let show = true;
+      if (val === '传统模式') show = label.includes('传统');
+      else if (val === '快速模式') show = label.includes('快速');
+      // '全部桌台' 全显示
+      card.style.display = show ? '' : 'none';
+    });
+  }
+  // 点外部关闭
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.hall-sort .sort-dropdown')) {
+      document.querySelectorAll('.hall-sort .sort-menu').forEach(m => m.classList.remove('open'));
+    }
+  });
+
+  // ===== H7 大厅视图切换（全路/极简），同步 Figma 对照图 =====
+  function setHallView(el, isSimple) {
+    document.body.classList.toggle('simple', isSimple);
+    const parent = el.parentElement;
+    if (parent) {
+      parent.querySelectorAll('span').forEach(s => s.classList.remove('active'));
+      el.classList.add('active');
+    }
+    // 对照面板当前是 hall 相关时，联动切到 hall-simple / hall
+    const title = document.getElementById('figma-title');
+    if (title && (title.textContent.indexOf('M3') >= 0 || title.textContent.indexOf('大厅') >= 0)) {
+      updateFigmaPanel(isSimple ? 'hall-simple' : 'hall');
+    }
+  }
+
+  // ===== B9 下注区分页切换（Page 1 / Page 2）=====
+  function setBetPage(n) {
+    document.querySelectorAll('.bet-area .bet-page').forEach(p => {
+      p.classList.toggle('active', String(p.dataset.page) === String(n));
+    });
+    const dots = document.querySelectorAll('.bet-area .bet-pager i');
+    dots.forEach((d, i) => d.classList.toggle('on', i === (n - 1)));
+    // 对照面板当前是 M4 时，联动切到 bet-lucky / bet
+    const title = document.getElementById('figma-title');
+    if (title && (title.textContent.indexOf('M4') >= 0 || title.textContent.indexOf('单桌') >= 0)) {
+      updateFigmaPanel(n === 2 ? 'bet-lucky' : 'bet');
+    }
+  }
+  function switchBetPage(delta) {
+    const pages = document.querySelectorAll('.bet-area .bet-page');
+    let cur = 1;
+    pages.forEach((p, i) => { if (p.classList.contains('active')) cur = i + 1; });
+    const next = ((cur - 1 + delta + pages.length) % pages.length) + 1;
+    setBetPage(next);
+  }
+
+  // 手势滑动（touch / pointer）切换下注页 —— 水平滑动 > 40px 且竖直位移 < 30px 才触发
+  (function bindBetSwipe() {
+    const swipe = document.getElementById('bet-swipe');
+    if (!swipe) return;
+    let startX = 0, startY = 0, tracking = false;
+    swipe.addEventListener('touchstart', (e) => {
+      if (!e.touches[0]) return;
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY; tracking = true;
+    }, { passive: true });
+    swipe.addEventListener('touchend', (e) => {
+      if (!tracking || !e.changedTouches[0]) return;
+      tracking = false;
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dx) > 40 && Math.abs(dy) < 30) {
+        switchBetPage(dx < 0 ? 1 : -1); // 左滑下一页，右滑上一页
+      }
+    });
+    // 桌面端鼠标模拟（拖拽切页）
+    let mdX = 0, md = false;
+    swipe.addEventListener('mousedown', (e) => { mdX = e.clientX; md = true; });
+    swipe.addEventListener('mouseup', (e) => {
+      if (!md) return; md = false;
+      const dx = e.clientX - mdX;
+      if (Math.abs(dx) > 40) switchBetPage(dx < 0 ? 1 : -1);
+    });
+  })();
+
+  // ===== L11 密码显隐 toggle（icon 状态联动：密码隐藏=闭眼 / 密码显示=睁眼）=====
+  function togglePw() {
+    const pw = document.getElementById('pw');
+    const eye = document.getElementById('eye');
+    if (!pw || !eye) return;
+    // 现状 inputType state：'password' / 'text'，eye_open/eye_close 互切
+    if (pw.type === 'password') {
+      pw.type = 'text';
+      eye.classList.remove('closed');
+    } else {
+      pw.type = 'password';
+      eye.classList.add('closed');
+    }
+  }
+
+  // ===== M1 登录页交互（沿用现状 views/login/index.tsx 竖屏分支 L423-593）=====
+  // 现状校验规则（regexp.ts）：account /^[\dA-z-]{3,20}$/；password /^[\dA-z]{6,20}$/
+  // 现状提交：toMD5(`ebet_account${pwd}EbetGameL`) → dispatch(login)
+  // 现状成功分流：position_level=0 → /plan；trade_type 长度=1 → /；其他 → /plan
+  const LOGIN_REG = {
+    acct: /^[\dA-z-]{3,20}$/,
+    pw: /^[\dA-z]{6,20}$/,
+  };
+  const LOGIN_ERR_MSG = {
+    acctEmpty: '请输入账号名称',
+    acctInvalid: '账号名称只能字母开头,包含字母、数字,且长度为3-16位',
+    pwEmpty: '请输入密码',
+    pwInvalid: '密码只能包含字母、数字和下划线,长度为6-20位',
+  };
+  function loginInputChange(field) {
+    const input = document.getElementById(field);
+    const wrap = document.getElementById(field + '-wrap');
+    const errEl = document.getElementById(field + '-err');
+    const v = (input.value || '').trim();
+    let err = '';
+    if (!v) {
+      // 空值不提示，等提交时再校验（现状 verifyInputValueAll 行为）
+      err = '';
+    } else if (!LOGIN_REG[field].test(v)) {
+      err = field === 'acct' ? LOGIN_ERR_MSG.acctInvalid : LOGIN_ERR_MSG.pwInvalid;
+    }
+    setLoginError(field, err);
+    refreshLoginBtn();
+  }
+  function setLoginError(field, msg) {
+    const wrap = document.getElementById(field + '-wrap');
+    const errEl = document.getElementById(field + '-err');
+    if (msg) {
+      wrap.classList.add('error');
+      errEl.textContent = msg;
+      errEl.classList.add('show');
+    } else {
+      wrap.classList.remove('error');
+      errEl.textContent = '';
+      errEl.classList.remove('show');
+    }
+  }
+  function refreshLoginBtn() {
+    // 现状 form 默认通过 onsubmit + verifyInputValueAll 校验；原型用 disabled 模拟"两个输入都有内容才可点"
+    const a = (document.getElementById('acct').value || '').trim();
+    const p = (document.getElementById('pw').value || '').trim();
+    document.getElementById('loginBtn').disabled = !(a && p);
+  }
+  function loginShowToast(msg) {
+    const t = document.getElementById('login-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1800);
+  }
+  function loginSubmit() {
+    const acct = (document.getElementById('acct').value || '').trim();
+    const pw = (document.getElementById('pw').value || '').trim();
+    // 现状提交校验全部字段（verifyInputValueAll）
+    if (!acct) { setLoginError('acct', LOGIN_ERR_MSG.acctEmpty); return; }
+    if (!LOGIN_REG.acct.test(acct)) { setLoginError('acct', LOGIN_ERR_MSG.acctInvalid); return; }
+    if (!pw) { setLoginError('pw', LOGIN_ERR_MSG.pwEmpty); return; }
+    if (!LOGIN_REG.pw.test(pw)) { setLoginError('pw', LOGIN_ERR_MSG.pwInvalid); return; }
+    setLoginError('acct', ''); setLoginError('pw', '');
+    // 现状会做 password = toMD5(`ebet_account${password}EbetGameL`) 加盐 + dispatch(login)
+    // 演示开关模拟分流（前端代码 L313-343 onFinish）
+    const demo = document.getElementById('loginDemo').value;
+    if (demo === 'error-acct') { loginShowToast('账号不存在'); setLoginError('acct', '账号不存在'); return; }
+    if (demo === 'error-pwd') { loginShowToast('密码错误'); setLoginError('pw', '密码错误'); return; }
+    // 记住账号：写 localStorage（本轮新增功能）
+    if (document.getElementById('remember-me').checked) {
+      // 模拟 localStorage.setItem('rememberedAccount', acct)
+    }
+    // 现状成功路径会 localStorage.setItem('token', access_token) + setGameMode + 分流
+    if (demo === 'plan') {
+      nav('plan');  // position_level=0 或 trade_type 长度>1
+    } else {
+      nav('hall');  // trade_type 长度=1，单交收方案直接进
+    }
+  }
+
+  // ===== 视频源设置（SelectVideoQuality.tsx 对齐：画质 modeList + 线路 flvList）=====
+  function pickVideoOpt(el, group) {
+    const parent = el.parentElement;
+    if (!parent) return;
+    parent.querySelectorAll('.vq-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    // 未来：dispatch 保存 mode / lineIndex 到 Redux
+  }
+
+  // C8.1 自动缩放（Sammy 2026-04-23/27）：
+  // on 时给 .bet-video 加 .auto-zoom-active 触发 CSS keyframes 周期演示；off 时移除 + 清掉 zoomed
+  // 实施时改为订阅 stop_bet_at / DeskStatusChange 事件，不依赖 keyframes 定时器
+  function toggleAutoZoom(el) {
+    el.classList.toggle('on');
+    const on = el.classList.contains('on');
+    const video = document.querySelector('.bet-video');
+    if (!video) return;
+    if (on) {
+      video.classList.add('auto-zoom-active');
+      video.classList.remove('zoomed');  // 清手动 state 让自动接管
+    } else {
+      video.classList.remove('auto-zoom-active');
+    }
+    // 未来：dispatch(setVideoAutoZoom(on)) → config.slice + localStorage
+  }
+  // 默认 toggle 是 on，初始化时给 video 加 active
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const t = document.getElementById('autoZoomToggle');
+      const video = document.querySelector('.bet-video');
+      if (t && t.classList.contains('on') && video) video.classList.add('auto-zoom-active');
+    }, 100);
+  });
+
+  // ===== 投注方式（对齐现状 SelectBetMode.tsx / bet_model：confirmMode=2 / clickMode=1）=====
+  function pickBetMode(el) {
+    const mode = el.dataset.mode;
+    const val = el.dataset.value;
+    document.querySelectorAll('#sub-betmode-sub .gm-opt').forEach(r => r.classList.remove('active'));
+    el.classList.add('active');
+    const cur = document.getElementById('cur-betmode');
+    if (cur) cur.textContent = mode + ' ›';
+    // 同步 body class 和操作栏行为
+    document.body.classList.toggle('confirm-mode', val === '2');
+    document.body.classList.toggle('click-mode', val === '1');
+    // 切换投注方式时重置操作栏到"重复"
+    hasPendingBet = false;
+    hasPlacedBet = false;
+    updateOpsButton();
+  }
+
+  // ===== 单桌操作栏状态机（业务逻辑 Sammy 2026-04-24 校正）=====
+  // 状态变量：
+  //   hasPendingBet：有待确认的投注（只在 confirm-mode 有意义；触发"确认"按钮）
+  //   hasPlacedBet：已成功下注（满足限红，无论哪种模式；允许撤注）
+  //   underLimit：投注未满足最低限红（出现"取消"按钮）
+  let hasPendingBet = false;
+  let hasPlacedBet = false;
+  let underLimit = false;
+
+  function updateOpsButton() {
+    const btn = document.getElementById('ops-main');
+    if (!btn) return;
+    const isConfirm = document.body.classList.contains('confirm-mode');
+    const showConfirm = isConfirm && hasPendingBet;
+    btn.dataset.i18n = showConfirm ? 'confirm' : 'repeat';
+    btn.dataset.i18nPrefix = showConfirm ? '✓ ' : '↻ ';
+    btn.textContent = (showConfirm ? '✓ ' : '↻ ') + getLangText(btn.dataset.i18n);
+    btn.className = showConfirm ? 'ok' : '';
+  }
+
+  function onMainBtn() {
+    const isConfirm = document.body.classList.contains('confirm-mode');
+    if (isConfirm && hasPendingBet) {
+      // 确认式 + 有待确认 → 确认投注
+      hasPendingBet = false;
+      hasPlacedBet = true;
+      alert('已确认投注');
+    } else {
+      // 重复上一局（满足限红时）
+      if (isConfirm) {
+        hasPendingBet = true;  // 确认式：进入待确认态
+      } else {
+        hasPlacedBet = true;  // 点击式：直接下注成功
+      }
+      alert('已重复上一局投注');
+    }
+    updateOpsButton();
+  }
+
+  function onCancelBet() {
+    if (!underLimit && !hasPendingBet) {
+      alert('当前无未达限红的投注可取消');
+      return;
+    }
+    hasPendingBet = false;
+    underLimit = false;
+    // 清空下注区 meta 示意
+    document.querySelectorAll('.bet-cell .bet-meta').forEach(m => {
+      m.innerHTML = '<span>👤 0</span><span>0 🪙</span>';
+    });
+    updateOpsButton();
+    alert('已取消未满足限红的投注');
+  }
+
+  function onRevokeBet() {
+    if (!hasPlacedBet) {
+      alert('当前无已下注可撤回');
+      return;
+    }
+    hasPlacedBet = false;
+    alert('已撤注');
+    updateOpsButton();
+  }
+
+  // 初始化：默认确认式投注
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('confirm-mode');
+    setTimeout(updateOpsButton, 50);
+    // Q6 大厅分页加载：注册 IntersectionObserver
+    setTimeout(hallInitPaging, 200);
+  });
+
+  // ===== C10/C11 语言切换（i18n 字典对齐现状 zh.json/en.json/ko.json key）=====
+  const flagMap = { '简体中文':'🇨🇳', 'English':'🇺🇸', '한국어':'🇰🇷' };
+  const langCodeMap = { '简体中文':'zh', 'English':'en', '한국어':'ko' };
+  // 关键文案三语映射（取自现状 i18next 资源；只覆盖原型最常见 UI 元素）
+  const I18N = {
+    zh: {
+      cancel:'取消', revoke:'撤注', confirm:'确认', repeat:'重复',
+      'multi-bet':'多台游戏', 'game-record':'游戏记录', 'settings':'设置',
+      'language':'语言设置', 'bet-mode':'投注方式', 'mode':'选择模式',
+      'video-settings':'视频源设置', 'chip-settings':'筹码设置', 'music-settings':'音乐设置',
+      'good-roads':'好路推荐设置', 'security':'安全设置', 'change-pwd':'修改密码',
+      'game-rules':'游戏规则', 'logout':'退出游戏', 'game-record':'游戏记录',
+      'banker':'庄', 'player':'闲', 'tie':'和', 'banker-pair':'庄对', 'player-pair':'闲对',
+      'lucky6':'幸运6', 'round':'局',
+      'all-tables':'全部桌台', 'good-road':'好路', 'full-road':'全路', 'simple':'极简',
+      'all-clubs':'全部赌场', 'opening':'开牌中', 'shuffling':'洗牌中',
+      'unlimited':'无限红', 'limit':'限红', 'enter-table':'进入本桌',
+    },
+    en: {
+      cancel:'Cancel', revoke:'Cancel Bet', confirm:'Confirm', repeat:'Repeat',
+      'multi-bet':'Multi-Betting', 'game-record':'Game Record', 'settings':'Settings',
+      'language':'Language', 'bet-mode':'Bet Mode', 'mode':'Select Mode',
+      'video-settings':'Video Source', 'chip-settings':'Chip Settings', 'music-settings':'Sound',
+      'good-roads':'Good Roads', 'security':'Security', 'change-pwd':'Change Password',
+      'game-rules':'Rules', 'logout':'Logout', 'game-record':'Bet Record',
+      'banker':'Banker', 'player':'Player', 'tie':'Tie', 'banker-pair':'Banker Pair', 'player-pair':'Player Pair',
+      'lucky6':'Lucky 6', 'round':'Round',
+      'all-tables':'All Tables', 'good-road':'Good Road', 'full-road':'Full', 'simple':'Simple',
+      'all-clubs':'All Clubs', 'opening':'Opening', 'shuffling':'Shuffling',
+      'unlimited':'No Limit', 'limit':'Limit', 'enter-table':'Enter Table',
+    },
+    ko: {
+      cancel:'취소', revoke:'베팅 취소', confirm:'확인', repeat:'중복',
+      'multi-bet':'멀티베팅', 'game-record':'게임 기록', 'settings':'설정',
+      'language':'언어선택', 'bet-mode':'베팅 방식', 'mode':'모드 선택',
+      'video-settings':'비디오 설정', 'chip-settings':'칩 설정', 'music-settings':'사운드',
+      'good-roads':'좋은 길', 'security':'보안', 'change-pwd':'비밀번호 변경',
+      'game-rules':'게임 규칙', 'logout':'로그아웃', 'game-record':'베팅 기록',
+      'banker':'뱅커', 'player':'플레이어', 'tie':'타이', 'banker-pair':'뱅커 페어', 'player-pair':'플레이어 페어',
+      'lucky6':'Lucky 6', 'round':'라운드',
+      'all-tables':'전체 테이블', 'good-road':'좋은 길', 'full-road':'전체', 'simple':'간략',
+      'all-clubs':'전체 카지노', 'opening':'카드 오픈 중', 'shuffling':'셔플 중',
+      'unlimited':'무제한', 'limit':'한도', 'enter-table':'테이블 입장',
+    },
+  };
+  let currentLang = 'zh';
+  function getLangText(key) {
+    return (I18N[currentLang] && I18N[currentLang][key]) || (I18N.zh && I18N.zh[key]) || key;
+  }
+  function applyI18n(lang) {
+    if (!I18N[lang]) return;
+    currentLang = lang;
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : (lang === 'ko' ? 'ko' : 'en');
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      const val = I18N[lang][key];
+      if (val) {
+        // 保留前缀符号（如 "⊘ " "↻ " "✓ "）
+        const prefix = el.dataset.i18nPrefix || '';
+        el.textContent = prefix + val;
+      }
+    });
+    // 操作栏第 3 按钮文字也跟着切（基于当前状态）
+    if (typeof updateOpsButton === 'function') updateOpsButton();
+  }
+
+  function pickLangFromSettings(el) {
+    const lang = el.dataset.lang;
+    document.querySelectorAll('#sub-lang-sub .lang-opt-row').forEach(r => r.classList.remove('active'));
+    el.classList.add('active');
+    const cur = document.getElementById('cur-lang-settings');
+    if (cur) cur.textContent = lang + ' ›';
+    const loginLabel = document.getElementById('cur-lang');
+    const loginFlag = document.getElementById('cur-flag');
+    if (loginLabel) loginLabel.textContent = lang;
+    if (loginFlag && flagMap[lang]) loginFlag.textContent = flagMap[lang];
+    // 实际切换 i18n
+    applyI18n(langCodeMap[lang] || 'zh');
+  }
+
+  // ===== L10 语言切换弹出菜单 =====
+  function toggleLangMenu(e){
+    e && e.stopPropagation();
+    document.getElementById('lang-menu').classList.toggle('open');
+  }
+  function pickLang(e, val, flag){
+    e && e.stopPropagation();
+    document.getElementById('cur-lang').textContent = val;
+    if (flag) document.getElementById('cur-flag').textContent = flag;
+    document.getElementById('lang-menu').classList.remove('open');
+  }
+  // 点击外部关闭
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('lang-menu');
+    const lang = document.querySelector('.login .lang');
+    if (menu && menu.classList.contains('open') && lang && !lang.contains(e.target)) {
+      menu.classList.remove('open');
+    }
+  });
+
+  // ===== Figma 对照面板 =====
+  const figmaMap = {
+    loading:        { file:'g4-loading.png',         title:'G4 首屏加载页' },
+    login:          { file:'m1-login.png',           title:'M1 登录页' },
+    hall:           { file:'m3-hall.png',            title:'M3 游戏大厅' },
+    'hall-simple':  { file:'m3-hall-simple.png',     title:'M3 大厅 · 极简桌台卡片' },
+    'hall-off':     { file:'m3-hall-off.png',        title:'M3 大厅 · 关闭 Banner + 好路' },
+    bet:            { file:'m4-bet.png',             title:'M4 单桌投注（Page 1）' },
+    'bet-lucky':    { file:'m4-bet-lucky.png',       title:'M4 单桌 · 幸运6 投注项（Page 2）' },
+    'bet-collapsed':{ file:'m4-bet-collapsed.png',   title:'M4 单桌 · 收起路图样式' },
+    multi:          { file:'m5-multi.png',           title:'M5 多桌投注' },
+    settings:       { file:'b16-settings.png',       title:'B16 系统设置抽屉' },
+    chip:           { file:'c7-chip.png',            title:'C7 筹码选择器' },
+    music:          { file:'c9-music.png',           title:'C9 音乐设置' },
+    road:           { file:'c12-road.png',           title:'C12 好路推荐设置' },
+    'hall-sub':     { file:'b16.3-ad.png',           title:'B16.3 轮播广告设置' },
+    'security-sub': { file:'b16.7-security.png',     title:'B16.7 安全中心' },
+  };
+
+  function updateFigmaPanel(key) {
+    const entry = figmaMap[key];
+    if (!entry) return;
+    const img = document.getElementById('figma-img');
+    const title = document.getElementById('figma-title');
+    const keyEl = document.getElementById('figma-key');
+    const empty = document.getElementById('figma-empty');
+    const emptyPath = document.getElementById('figma-empty-path');
+    const path = 'figma/' + entry.file;
+    title.textContent = entry.title;
+    keyEl.textContent = path;
+    emptyPath.textContent = path;
+    img.onerror = () => { img.style.display = 'none'; empty.style.display = 'block'; };
+    img.onload  = () => { img.style.display = 'block'; empty.style.display = 'none'; };
+    img.src = path + '?t=' + Date.now(); // bust cache
+  }
+
+  function toggleFigmaPanel() {
+    document.getElementById('figma-panel').classList.toggle('open');
+  }
+
+  // ===== Initial nav =====
+  const hashPage = (location.hash || '#/hall').replace('#/','');
+  nav(['loading','login','plan','hall','bet','multi'].includes(hashPage) ? hashPage : 'hall');
+
+  // ===== Annos on by default =====
+  document.body.classList.add('annos');
+</script>
+</body>
+</html>
