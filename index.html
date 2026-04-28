@@ -769,13 +769,39 @@
     background:var(--red); color:#fff; font-size:9px; font-weight:700; padding:0 4px;
     display:flex; align-items:center; justify-content:center;
   }
-  /* 中央倒计时 —— Figma 是绿色圆环（外圈环形进度 + 内显数字）*/
-  .bet-video .cd-big {
-    position:absolute; left:50%; top:42%; transform:translate(-50%, -50%);
-    font-size:28px; font-weight:700; color:#fff; font-family:"PingFang SC", sans-serif;
-    width:52px; height:52px; border-radius:50%; background:rgba(0,150,0,.5); border:3px solid #00c500;
-    display:flex; align-items:center; justify-content:center; z-index:3;
+  /* B3 倒计时圆环 —— Sammy 2026-04-28 决策：从视频区移到下注区"闲/庄"之间居中 */
+  .bet-row.row-main { position:relative; }
+  .bet-row.row-main .cd-center {
+    position:absolute; left:50%; top:50%; transform:translate(-50%, -50%);
+    width:64px; height:64px; border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    z-index:5; cursor:pointer; user-select:none;
+    font-family:"PingFang SC", sans-serif; transition:all .25s;
   }
+  /* 状态 1：投注中（绿环 + 倒计时数字）*/
+  .bet-row.row-main .cd-center.betting {
+    background:radial-gradient(circle, rgba(0,150,0,.55), rgba(0,80,0,.85));
+    border:3px solid #00d278;
+    box-shadow:0 0 16px rgba(0,210,120,.4);
+  }
+  .bet-row.row-main .cd-center.betting .cd-num { display:flex; font-size:22px; font-weight:700; color:#fff; }
+  .bet-row.row-main .cd-center.betting .cd-label { display:none; }
+  /* 状态 2：开牌中（金环 + 文字）*/
+  .bet-row.row-main .cd-center.opening {
+    background:radial-gradient(circle, rgba(201,162,78,.5), rgba(120,90,30,.85));
+    border:3px solid var(--gold);
+    box-shadow:0 0 16px rgba(201,162,78,.5);
+  }
+  .bet-row.row-main .cd-center.opening .cd-num { display:none; }
+  .bet-row.row-main .cd-center.opening .cd-label { display:flex; font-size:12px; font-weight:700; color:#fff; }
+  /* 状态 3：洗牌中（红环 + 文字 = 换靴）*/
+  .bet-row.row-main .cd-center.shuffle {
+    background:radial-gradient(circle, rgba(255,70,70,.5), rgba(140,20,20,.85));
+    border:3px solid #ff5050;
+    box-shadow:0 0 16px rgba(255,70,70,.4);
+  }
+  .bet-row.row-main .cd-center.shuffle .cd-num { display:none; }
+  .bet-row.row-main .cd-center.shuffle .cd-label { display:flex; font-size:12px; font-weight:700; color:#fff; }
   .bet-video .ic {
     position:absolute; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,.5);
     display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px;
@@ -969,14 +995,32 @@
     overflow:hidden;
   }
   .chip-bar::-webkit-scrollbar { display:none; }
-  .chip-set, .chip-luck {
+  .chip-set {
     width:32px; height:32px; border-radius:50%; flex-shrink:0;
     background:radial-gradient(circle at 30% 30%, #2a3340, #141c24);
     border:1px solid rgba(255,255,255,.12);
     display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;
     color:#eed38d;
   }
-  .chip-luck { margin-left:auto; }
+  /* B7 好路投注按钮（Sammy 2026-04-28 二次澄清：单桌改回原 iron 形态，💡 + 红角标，
+     名字"好路投注"仅用作抽屉标题，按钮本体不显示文字）*/
+  .chip-luck {
+    margin-left:auto; flex-shrink:0; cursor:pointer; position:relative;
+    width:32px; height:32px; border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #2a3340, #141c24);
+    border:1px solid rgba(255,255,255,.12);
+    color:#eed38d; font-size:14px;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .chip-luck .cl-icon { font-size:14px; }
+  .chip-luck .cl-text { display:none; }
+  .chip-luck .luck-num {
+    position:absolute; top:-4px; right:-4px;
+    background:#ff1921; color:#fff; font-size:10px; font-weight:600;
+    padding:0 4px; border-radius:8px; min-width:16px; height:14px;
+    display:inline-flex; align-items:center; justify-content:center;
+    border:1.5px solid #141c24;
+  }
   /* 中间 5 颗筹码区，可滑动 */
   .chip-bar .chips-mid {
     display:flex; gap:8px; align-items:center; padding:0 4px;
@@ -1106,10 +1150,22 @@
   }
   .mcard .mtop b { color:var(--ink); }
   .mcard .mtop .cd { background:var(--green); color:#fff; padding:1px 6px; border-radius:4px; font-size:10px; }
-  .mcard .mtop .vid { margin-left:auto; background:var(--panel-2); border:1px solid var(--line); padding:2px 8px; border-radius:4px; cursor:pointer; font-size:10px; }
-  .mcard .mtop .limit { background:var(--panel-2); padding:2px 6px; border-radius:4px; font-size:10px; color:var(--gold); }
+  /* M5 多桌卡顶部视频按钮 + 限红胶囊（Sammy 2026-04-27 升级：限红更醒目，视频按钮支持开/关切换）*/
+  .mcard .mtop .vid {
+    margin-left:auto; background:var(--panel-2); border:1px solid var(--line);
+    padding:3px 10px; border-radius:14px; cursor:pointer; font-size:11px; color:var(--ink);
+    display:inline-flex; align-items:center; gap:4px;
+  }
+  .mcard .mtop .vid.on { background:rgba(0,131,255,.15); border-color:rgba(0,131,255,.5); color:#0096ff; }
+  .mcard .mtop .limit {
+    background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.18);
+    padding:3px 10px; border-radius:14px; font-size:11px; color:#fff; cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px;
+  }
+  .mcard .mtop .limit::before { content:"🪙"; font-size:12px; }
+  .mcard .mtop .limit::after { content:"▾"; font-size:9px; opacity:.7; margin-left:2px; }
   .mcard .mmid {
-    display:grid; grid-template-columns:60px 1fr 100px; gap:4px; height:72px; margin-bottom:6px;
+    display:grid; grid-template-columns:60px 1fr 140px; gap:4px; min-height:96px; margin-bottom:6px;
   }
   .mcard .mmid .pearl {
     background:#0a0d12; border-radius:4px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; padding:2px;
@@ -1123,13 +1179,45 @@
   .mcard .mmid .bigroad i:nth-child(3n){ background:var(--blue); }
   .mcard .mmid .bigroad i:nth-child(11n){ background:transparent; }
   .mcard .mmid .bigroad .roadtag { position:absolute; bottom:2px; right:2px; font-size:9px; color:var(--gold); background:rgba(0,0,0,.6); padding:1px 4px; border-radius:3px; }
-  .mcard .mmid .bets { display:flex; flex-direction:column; gap:2px; }
-  .mcard .mmid .bets .bc {
-    flex:1; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:3px;
-    display:flex; align-items:center; justify-content:center; font-size:9px;
+  /* M5 多桌卡视频占位（MB5.6 — Sammy 2026-04-28：插在"顶部栏"和"路图+下注区"之间整条展示，**不**覆盖路图；
+     视频区**只保留放大缩小一个功能**，其他控件由视频流本身承载，UI 不再叠加 LIVE/倒计时/桌名等 overlay）*/
+  .mcard .video-slot { display:none; position:relative; border-radius:6px; overflow:hidden;
+    background:linear-gradient(135deg,#0a1525 0%,#16263d 50%,#0a1525 100%);
+    border:1px solid rgba(0,131,255,.25);
+    height:140px; margin-bottom:6px;
+    align-items:center; justify-content:center; flex-direction:column;
   }
-  .mcard .mmid .bets .bc.banker { border-color:var(--red); color:#ff8080; }
-  .mcard .mmid .bets .bc.player { border-color:var(--blue); color:#8bb8ff; }
+  .mcard.vid-on .video-slot { display:flex; }
+  .mcard .video-slot .vid-icon { font-size:32px; opacity:.45; margin-bottom:4px; }
+  .mcard .video-slot .vid-tip { font-size:11px; color:var(--ink-2); }
+  /* 视频右上"放大镜"图标（多桌唯一保留的控件；演示放大效果，实施沿用 C8.1 zoom 链路）*/
+  .mcard .video-slot .vid-zoom {
+    position:absolute; top:8px; right:8px;
+    width:28px; height:28px; border-radius:50%;
+    background:rgba(0,0,0,.5); color:var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; cursor:pointer; border:1px solid rgba(201,162,78,.4);
+  }
+  .mcard .video-slot .vid-zoom:active { transform:scale(.95); }
+  .mcard .video-slot.zoomed .vid-icon { font-size:48px; opacity:.6; }
+  /* M5 多桌卡下注区：3+2 色块布局（Sammy 2026-04-27 — 让用户能直接点色块下注，不再是单列文字按钮）*/
+  .mcard .mmid .bets { display:flex; flex-direction:column; gap:2px; }
+  .mcard .mmid .bets .brow { flex:1; display:flex; gap:2px; min-height:0; }
+  .mcard .mmid .bets .bc {
+    flex:1; border-radius:3px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:"PingFang SC", sans-serif; padding:2px;
+    line-height:1.1; min-width:0;
+  }
+  .mcard .mmid .bets .bc .zh { font-size:11px; font-weight:600; }
+  .mcard .mmid .bets .bc .od { font-size:9px; opacity:.85; margin-top:1px; letter-spacing:.3px; }
+  .mcard .mmid .bets .bc.pair-p { background:transparent; border:0.8px solid #2f3f53; color:#0096ff; }
+  .mcard .mmid .bets .bc.tie    { background:transparent; border:0.8px solid #2f3f53; color:#00d278; }
+  .mcard .mmid .bets .bc.pair-b { background:transparent; border:0.8px solid #2f3f53; color:#ff4646; }
+  .mcard .mmid .bets .bc.player { background:#1e3c78; border:0.8px solid #3c78f0; color:#fff; }
+  .mcard .mmid .bets .bc.banker { background:#8c1414; border:0.8px solid #ff3c3c; color:#fff; }
+  .mcard .mmid .bets .bc.player .od,
+  .mcard .mmid .bets .bc.banker .od { color:#c3e1ff; }
   .mcard .mbot {
     display:flex; align-items:center; gap:8px; font-size:10px; color:var(--ink-2); padding-top:6px; border-top:1px solid var(--line);
   }
@@ -1211,6 +1299,68 @@
   .side-drawer .sd-item .sd-t { color:#fff; font-size:13px; font-weight:500; margin-bottom:2px; }
   .side-drawer .sd-item .sd-s { color:var(--ink-2); font-size:10px; }
 
+  /* M5 多桌工具栏（Sammy 2026-04-27 UI 稿）*/
+  .multi-toolbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 12px; gap:12px;
+  }
+  .multi-toolbar .hall-sort {
+    position:relative;
+    display:inline-flex; align-items:center; gap:4px;
+    padding:6px 14px; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:18px; font-size:13px; color:#fff; cursor:pointer;
+  }
+  .multi-toolbar .hall-sort .caret { font-size:10px; color:var(--ink-2); }
+  .multi-toolbar .hall-sort .sort-pop {
+    position:absolute; top:calc(100% + 4px); left:0; min-width:120px;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:4px 0; z-index:50; display:none;
+    box-shadow:0 4px 16px rgba(0,0,0,.6);
+  }
+  .multi-toolbar .hall-sort.open .sort-pop { display:block; }
+  .multi-toolbar .hall-sort .sp-item {
+    padding:8px 14px; font-size:12px; color:var(--ink-2); cursor:pointer; white-space:nowrap;
+  }
+  .multi-toolbar .hall-sort .sp-item:hover { background:rgba(201,162,78,.15); color:var(--gold); }
+  .multi-toolbar .hall-sort .sp-item.active { color:var(--gold); }
+  .multi-toolbar .multi-refresh {
+    padding:6px 12px; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:18px; font-size:12px; color:var(--ink-2); cursor:pointer;
+    user-select:none; transition:color .2s;
+  }
+  .multi-toolbar .multi-refresh:hover { color:var(--gold); }
+  .multi-toolbar .multi-refresh.spinning { color:var(--gold); pointer-events:none; }
+  .multi-toolbar .multi-refresh .refresh-icon { display:inline-block; transition:transform .2s; }
+  .multi-toolbar .multi-refresh.spinning .refresh-icon { animation:multiSpin .8s linear; }
+  @keyframes multiSpin { from { transform:rotate(0deg); } to { transform:rotate(720deg); } }
+  /* 多桌列表刷新蒙层（短暂闪一下表示数据已更新）*/
+  .multi-list { position:relative; }
+  .multi-list.refreshing::after {
+    content:""; position:absolute; inset:0; background:rgba(201,162,78,.06);
+    border-radius:6px; pointer-events:none; animation:multiFlash .8s ease-out;
+  }
+  @keyframes multiFlash { 0%{opacity:0;} 30%{opacity:1;} 100%{opacity:0;} }
+  /* 锁定本桌（Sammy 2026-04-27 Q27：icon + 文字 + 置顶逻辑）*/
+  .mcard .mbot .lock {
+    margin-left:auto;
+    display:inline-flex; align-items:center; gap:4px;
+    padding:3px 10px; border-radius:12px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+    font-size:11px; color:var(--ink-2); cursor:pointer;
+  }
+  .mcard .mbot .lock.on {
+    background:rgba(201,162,78,.15); border-color:rgba(201,162,78,.5); color:var(--gold);
+  }
+  .mcard .mbot .lock .lock-icon { font-size:12px; }
+  /* 已锁定卡片视觉（金色细描边）*/
+  .mcard.locked { box-shadow:inset 0 0 0 1px rgba(201,162,78,.5); }
+  /* M5 底部 VIP 锁底（与单桌一致）*/
+  .multi-vip-foot {
+    flex-shrink:0; height:30px; background:#000; color:#fff; font-size:11px;
+    display:flex; align-items:center; justify-content:center; gap:4px;
+    border-top:1px solid var(--line);
+  }
+
   /* B3 切桌抽屉新版（Sammy 2026-04-27）*/
   #drawer-switch { width:80%; right:-80%; }
   #drawer-switch.open { right:0; }
@@ -1289,7 +1439,114 @@
     border-top:1px solid var(--line); margin:8px -8px -8px;
   }
 
-  /* B7 好路侧拉卡片 */
+  /* ===== B7 好路投注 底部抽屉（Sammy 2026-04-28 截图新样式）===== */
+  #drawer-luck-bet { z-index:130; height:70%; max-height:70%; }
+  #drawer-luck-bet.expanded { height:100%; max-height:100%; border-radius:0; }
+  #drawer-luck-bet .lbet-hdr { display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px; padding:14px 16px; }
+  #drawer-luck-bet .lbet-hdr h3 { color:#fff; text-align:center; font-size:15px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  #drawer-luck-bet .lbet-count { background:#0083ff; color:#fff; font-size:11px; padding:1px 8px; border-radius:10px; font-weight:600; }
+  #drawer-luck-bet .lbet-set { color:var(--gold); font-size:18px; cursor:pointer; }
+  #drawer-luck-bet .bs-hdr .close { color:#fff; font-size:20px; cursor:pointer; }
+  #drawer-luck-bet .lbet-body { padding:8px 10px; }
+  /* 好路抽屉底部筹码条（贴底 sticky；高度 70px 同 M4）*/
+  #drawer-luck-bet .lbet-chips {
+    flex-shrink:0; border-top:1px solid var(--line);
+  }
+  /* 单卡 */
+  .lbet-card { background:var(--panel); border-radius:8px; margin-bottom:10px; overflow:hidden; border:1px solid var(--line); }
+  .lbet-card .lbet-top {
+    display:flex; align-items:center; gap:8px; font-size:11px; color:var(--ink-2);
+    padding:7px 10px; background:rgba(0,0,0,.3); border-bottom:1px solid var(--line);
+  }
+  .lbet-card .lbet-top .lbet-club {
+    background:var(--gold); color:#000; padding:2px 8px; border-radius:4px;
+    font-size:10px; font-weight:600;
+  }
+  .lbet-card .lbet-top .lbet-tname { color:#fff; font-weight:500; }
+  .lbet-card .lbet-top .lbet-no {
+    border:1px solid var(--red); color:var(--red); padding:0 6px; border-radius:4px; font-size:10px; font-weight:600;
+  }
+  .lbet-card .lbet-top .lbet-limit { color:#fff; }
+  .lbet-card .lbet-top .lbet-enter { margin-left:auto; color:var(--ink); cursor:pointer; }
+  .lbet-card .lbet-mid { display:grid; grid-template-columns:1fr 160px; gap:6px; padding:6px; }
+  /* 左：vs 牌面 + 路型 tag */
+  .lbet-vs {
+    position:relative; background:#0a0d12; border-radius:6px; overflow:hidden;
+    display:grid; grid-template-rows:auto 1fr auto; gap:4px; padding:4px;
+    min-height:120px;
+  }
+  .lbet-vs::before {
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(90deg, rgba(0,131,255,.5) 0 50%, rgba(255,25,33,.5) 50% 100%);
+    z-index:0;
+  }
+  .lbet-vs > * { position:relative; z-index:1; }
+  .lbet-vs .vs-side { display:flex; align-items:center; gap:6px; font-family:"PingFang SC", sans-serif; }
+  .lbet-vs .vs-side.player { justify-content:flex-start; }
+  .lbet-vs .vs-side.banker { justify-content:flex-end; }
+  .lbet-vs .vs-side .vs-zh { color:#fff; font-size:18px; font-weight:600; }
+  .lbet-vs .vs-side .vs-pt { color:#fff; font-size:18px; font-weight:700; }
+  /* 行布局：把闲分数 / VS / 庄分数 放第一行（grid-row 1） */
+  .lbet-vs .vs-side.player { grid-column:1 / span 2; grid-row:1; justify-content:flex-start; padding-left:6px; }
+  .lbet-vs .vs-side.banker { grid-column:1 / span 2; grid-row:1; justify-content:flex-end; padding-right:6px; }
+  .lbet-vs .vs-icon {
+    grid-column:1 / span 2; grid-row:1; justify-self:center; align-self:center;
+    color:var(--gold); font-size:13px; font-weight:700;
+    background:rgba(0,0,0,.6); padding:1px 6px; border-radius:4px;
+  }
+  .lbet-vs .vs-cards {
+    grid-column:1 / span 2; grid-row:2;
+    display:flex; gap:3px; align-items:flex-start; padding:0 6px;
+  }
+  .lbet-vs .vs-tag {
+    grid-column:1 / span 2; grid-row:3; align-self:end; justify-self:end;
+    background:#00c500; color:#fff; font-size:10px; font-weight:600;
+    padding:2px 8px; border-radius:4px;
+  }
+  /* 扑克牌（小尺寸，卡片堆叠）*/
+  .poker {
+    width:28px; height:38px; border-radius:3px; background:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:"PingFang SC", sans-serif; line-height:1; flex-shrink:0;
+    box-shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+  .poker .pt { font-size:14px; font-weight:700; }
+  .poker .suit { font-size:12px; }
+  .poker.red { color:#e60022; }
+  .poker.black { color:#000; }
+  .poker.back {
+    background:repeating-linear-gradient(45deg, #1e3c78 0 6px, #2a4d8c 6px 12px);
+    border:1px solid #fff;
+  }
+  .poker.back.red { background:repeating-linear-gradient(45deg, #8c1414 0 6px, #b01818 6px 12px); }
+  /* 右：闲/庄 大色块下注 */
+  .lbet-bets { display:grid; grid-template-rows:1fr 1fr; gap:3px; }
+  .lbet-bets .bc {
+    border-radius:5px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:pointer; padding:4px 6px;
+    font-family:"PingFang SC", sans-serif; line-height:1.15;
+  }
+  .lbet-bets .bc.player { background:#1e3c78; border:1px solid #3c78f0; color:#fff; }
+  .lbet-bets .bc.banker { background:#8c1414; border:1px solid #ff3c3c; color:#fff; }
+  .lbet-bets .bc.dim { opacity:.55; }
+  .lbet-bets .bc .zh { font-size:18px; font-weight:600; }
+  .lbet-bets .bc .en { font-size:9px; opacity:.85; }
+  .lbet-bets .bc .odds { font-size:11px; opacity:.85; margin-top:1px; }
+  /* 底部 取消 / 确定 */
+  .lbet-card .lbet-bot {
+    display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:6px;
+    background:rgba(0,0,0,.2); border-top:1px solid var(--line);
+  }
+  .lbet-card .lbet-bot button {
+    background:var(--panel-2); border:1px solid var(--line); color:#fff;
+    padding:8px; border-radius:5px; font-size:12px; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; gap:4px;
+  }
+  .lbet-card .lbet-bot .lbet-cancel { color:#ff5050; }
+  .lbet-card .lbet-bot .lbet-ok { color:#00d278; }
+  .lbet-card .lbet-bot button:hover { background:rgba(255,255,255,.08); }
+
+  /* B7 好路侧拉卡片（保留现状代码 luckRoads slice 兼容；新样式由 lbet-card 接管，下面 .luck-list 仍保留以备复用）*/
   .luck-list { display:flex; flex-direction:column; padding:0 10px; gap:10px; }
   .luck-item {
     padding:10px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; cursor:pointer;
@@ -1403,15 +1660,26 @@
   #dlg-gameplay .dbox, #dlg-road .dbox,
   #dlg-chip .dbox, #dlg-music .dbox, #dlg-video .dbox,
   #dlg-table-limit .dbox { height:70%; max-height:70%; }
-  #drawer-record .bs-hdr h3 { color:#eed38d; }
-  #drawer-record .bs-hdr .close { color:#eed38d; font-size:20px; }
+  /* C3 抽屉头：左 展开 / 中 标题 / 右 ✕ —— Sammy 2026-04-28 截图三件套 */
+  #drawer-record .record-hdr { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:8px; padding:14px 16px; }
+  #drawer-record .bs-hdr h3 { color:#fff; text-align:center; font-size:15px; font-weight:600; }
+  #drawer-record .bs-hdr .close { color:#fff; font-size:20px; cursor:pointer; }
+  #drawer-record .rec-expand {
+    background:var(--panel-2); border:1px solid var(--line); border-radius:14px;
+    padding:4px 10px; color:var(--ink); font-size:12px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
+  }
+  #drawer-record .rec-expand-caret { font-size:10px; transition:transform .25s; }
+  #drawer-record.expanded .rec-expand-caret { transform:rotate(180deg); }
+  /* 展开态：抽屉撑满全屏（覆盖默认 70%）*/
+  #drawer-record.expanded { height:100%; max-height:100%; border-radius:0; }
+  /* 金色提示条（替代原红色警告）*/
   #drawer-record .record-warn {
     display:flex; align-items:center; justify-content:center; gap:6px;
-    padding:10px; color:#ff4646; font-size:12px; background:rgba(255,70,70,.06);
+    padding:10px; color:var(--gold); font-size:12px;
+    background:rgba(201,162,78,.1); border-bottom:1px solid rgba(201,162,78,.2);
   }
-  #drawer-record .record-warn::before {
-    content:"⚠"; font-size:13px;
-  }
+  #drawer-record .record-warn .rwi { font-size:13px; color:var(--gold); }
   #drawer-record .bs-body { padding:0; }
   #drawer-record table {
     width:100%; border-collapse:collapse; font-family:"PingFang SC", sans-serif; font-size:11px;
@@ -1446,13 +1714,19 @@
   #drawer-record .record-foot .total {
     color:#b8b8b8; font-size:13px; display:flex; align-items:center; gap:10px;
   }
-  #drawer-record .record-foot .total b { color:#ff4646; font-size:14px; font-weight:500; }
+  #drawer-record .record-foot .total b { color:#ff4646; font-size:18px; font-weight:600; margin-left:4px; }
+  /* Sammy 2026-04-28：导出按钮改蓝底白字（图标+文字） */
   #drawer-record .record-foot .export {
-    background:linear-gradient(180deg, rgb(237,209,133), rgb(232,189,112));
-    color:#492c00; border:none; padding:8px 20px; border-radius:16px;
-    font-size:13px; font-weight:600; cursor:pointer;
+    background:linear-gradient(180deg, #2f3f53, #1c2a3a);
+    border:1px solid #3c5170; color:#fff;
+    padding:8px 20px; border-radius:8px;
+    font-size:13px; font-weight:500; cursor:pointer;
     display:inline-flex; align-items:center; gap:4px;
   }
+  #drawer-record .record-foot .export:hover { background:linear-gradient(180deg, #3c5170, #2f3f53); }
+  #drawer-record .record-foot .export .exp-ic { font-size:13px; }
+  /* 结果列：多行（如 "闲赢/庄对" 同时命中）*/
+  #drawer-record tbody td .result-multi { display:inline-flex; flex-direction:column; gap:2px; line-height:1.25; }
 
   .quick-3 {
     display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:0 16px 12px;
@@ -2419,9 +2693,8 @@
         <span class="ic" title="视频源放大缩小" onclick="toggleVideoZoom()">🔍</span>
         <span class="ic" title="切桌" onclick="openSideDrawer('switch')">🎥</span>
       </div>
-      <!-- 中央绿色倒计时圆环 -->
-      <span class="cd-big">10</span>
-      <span class="anno" style="top:50%; left:8%; transform:translateY(-50%);">B3 倒计时绿环</span>
+      <!-- B3 倒计时绿环：Sammy 2026-04-28 决策搬到下注区"闲/庄"之间，视频区不再叠加 -->
+      <span class="anno" style="top:50%; left:8%; transform:translateY(-50%);">B3 倒计时已下移到下注区</span>
       <span class="anno" style="bottom:10px; right:8px;">5 icons 右侧柱（+ 左上返回 = 6）</span>
     </div>
 
@@ -2505,18 +2778,23 @@
         </div>
       </div>
 
-      <!-- 下半：庄/闲常驻（两页共用，Figma y:418-508）-->
+      <!-- 下半：庄/闲常驻 + 中间倒计时圆环（Sammy 2026-04-28 决策：倒计时位置从视频区搬到此处）
+           B3.1 圆环 3 状态：投注中（绿环+数字）/ 开牌中（金环+开牌中文字）/ 洗牌中（红环+换靴文字）-->
       <div class="bet-row row-main">
         <div class="bet-cell player" onclick="tapBetCell(this)">
           <span class="zh">闲</span>
           <span class="en">Player</span>
-          <span class="odds">1:11</span>
+          <span class="odds">1:1</span>
           <div class="bet-meta"><span>👤 3</span><span>3K 🪙</span></div>
         </div>
+        <span class="cd-center betting" id="bet-cd-center" onclick="cycleBetCdState()" title="演示状态切换">
+          <span class="cd-num" id="bet-cd-num">12</span>
+          <span class="cd-label" id="bet-cd-label">开牌中</span>
+        </span>
         <div class="bet-cell banker" onclick="tapBetCell(this)">
           <span class="zh">庄</span>
           <span class="en">Banker</span>
-          <span class="odds">1:11</span>
+          <span class="odds">1:0.95</span>
           <div class="bet-meta"><span>👤 0</span><span>0 🪙</span></div>
         </div>
       </div>
@@ -2539,7 +2817,8 @@
       <span class="anno" style="top:-12px; right:8px;">B11.4 重复↔确认 状态机</span>
     </div>
 
-    <!-- 筹码栏（Figma node 12185:194646：左 ⚙ + 中 5 颗筹码可滑 + 右 💡 + 红角标） -->
+    <!-- 筹码栏（Sammy 2026-04-28 二次澄清：筹码 5→6 个；右 iron 改回原 💡+红角标 形态，
+         点击进入"好路投注"抽屉（B7 抽屉名定为"好路投注"）） -->
     <div class="chip-bar">
       <div class="chip-set" title="C7 设置 / 自定义筹码" onclick="openDialog('chip')">⚙</div>
       <div class="chips-mid" id="chips-mid">
@@ -2548,8 +2827,9 @@
         <div class="chip active" onclick="pickChip(this)">5,000</div>
         <div class="chip" onclick="pickChip(this)">10,000</div>
         <div class="chip" onclick="pickChip(this)">20,000</div>
+        <div class="chip" onclick="pickChip(this)">50,000</div>
       </div>
-      <div class="chip-luck" title="B7 好路侧拉" onclick="openSideDrawer('luck')">💡<span class="luck-num">20</span></div>
+      <div class="chip-luck" title="B7 好路投注" onclick="openLuckBetDrawer()"><span class="cl-icon">💡</span><span class="luck-num">99</span></div>
     </div>
 
     <!-- 筹码栏下方 · · · · 页码指示器（4 档筹码集） -->
@@ -2617,31 +2897,48 @@
       <span class="tab tab-cagayan" onclick="pickTab(this)"><span class="tab-text">CAGAYAN</span><span class="badge">60</span></span>
       <span class="tab tab-solaire" onclick="pickTab(this)"><span class="tab-text">Solaire</span><span class="badge">60</span></span>
     </div>
-    <div class="hall-filter" style="padding-bottom:8px;">
-      <span class="tab active">好路置顶<span class="badge">9</span></span>
-      <span class="tab">热门置顶</span>
-      <span class="tab">投注置顶</span>
-      <span class="tab" style="background:var(--panel-2);">🔄 刷新</span>
+    <!-- M5 第二行：排序下拉 + 桌台刷新（多桌全是快速桌，无需类型筛选；4 项跟首页 H6 一致）-->
+    <div class="multi-toolbar">
+      <span class="hall-sort" onclick="toggleMultiSort(this)">
+        <span id="multi-sort-text">默认</span>
+        <span class="caret">▾</span>
+        <div class="sort-pop" id="multi-sort-pop">
+          <div class="sp-item active" onclick="event.stopPropagation();pickMultiSort(this, '默认')">默认</div>
+          <div class="sp-item" onclick="event.stopPropagation();pickMultiSort(this, '好路')">好路</div>
+          <div class="sp-item" onclick="event.stopPropagation();pickMultiSort(this, '低至高')">低至高</div>
+          <div class="sp-item" onclick="event.stopPropagation();pickMultiSort(this, '高至低')">高至低</div>
+        </div>
+      </span>
+      <span class="multi-refresh" onclick="refreshMultiList(this)"><span class="refresh-icon">⟳</span> 桌台刷新</span>
     </div>
-    <span class="anno" style="top:90px; right:10px;">MB2/MB3 双层 Tab</span>
+    <span class="anno" style="top:90px; right:10px;">MB2 赌厅 Tab（切换场馆联动列表）+ MB3 排序 + 刷新</span>
 
     <div class="multi-list">
-      <div class="mcard">
+      <div class="mcard" data-club="Newport" data-mode="快速" data-deskno="21">
         <div class="mtop">
           <b>Newport</b> <b>快速桌 21</b>
           <span class="cd">18</span>
-          <span class="vid">▶ 开启视频</span>
-          <span class="limit">20-50K</span>
+          <span class="vid" onclick="event.stopPropagation();toggleMultiVid(this)">▶ 开启视频</span>
+          <span class="limit" onclick="event.stopPropagation();openDialog('table-limit')">20-50K</span>
+        </div>
+        <div class="video-slot">
+          <div class="vid-icon">🎥</div>
+          <div class="vid-tip">视频流加载中…</div>
+          <span class="vid-zoom" onclick="event.stopPropagation();toggleMultiZoom(this)" title="放大/缩小">🔍</span>
         </div>
         <div class="mmid">
           <div class="pearl"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           <div class="bigroad"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="roadtag">大路单跳</span></div>
           <div class="bets">
-            <div class="bc">闲对 1:11</div>
-            <div class="bc">和 1:8</div>
-            <div class="bc">庄对 1:11</div>
-            <div class="bc player">闲 1:1</div>
-            <div class="bc banker">庄 1:0.95</div>
+            <div class="brow">
+              <div class="bc pair-p" onclick="event.stopPropagation();"><span class="zh">闲对</span><span class="od">1:11</span></div>
+              <div class="bc tie" onclick="event.stopPropagation();"><span class="zh">和</span><span class="od">1:8</span></div>
+              <div class="bc pair-b" onclick="event.stopPropagation();"><span class="zh">庄对</span><span class="od">1:11</span></div>
+            </div>
+            <div class="brow">
+              <div class="bc player" onclick="event.stopPropagation();"><span class="zh">闲</span><span class="od">1:1</span></div>
+              <div class="bc banker" onclick="event.stopPropagation();"><span class="zh">庄</span><span class="od">1:0.95</span></div>
+            </div>
           </div>
         </div>
         <div class="mbot">
@@ -2649,27 +2946,36 @@
           <span>庄 <b>42</b></span>
           <span>闲 <b>38</b></span>
           <span>和 <b>12</b></span>
-          <span class="lock">🔓</span>
+          <span class="lock" onclick="event.stopPropagation();toggleLock(this)"><span class="lock-icon">🔓</span> 锁定本桌</span>
           <span class="enter" onclick="nav('bet')">进入本桌 ›</span>
         </div>
       </div>
 
-      <div class="mcard">
+      <div class="mcard" data-club="Solaire" data-mode="快速" data-deskno="81">
         <div class="mtop">
           <b>Solaire</b> <b>快速桌 81</b>
           <span class="cd" style="background:var(--red);">3</span>
-          <span class="vid">▶ 开启视频</span>
-          <span class="limit">50-100K</span>
+          <span class="vid" onclick="event.stopPropagation();toggleMultiVid(this)">▶ 开启视频</span>
+          <span class="limit" onclick="event.stopPropagation();openDialog('table-limit')">50-100K</span>
+        </div>
+        <div class="video-slot">
+          <div class="vid-icon">🎥</div>
+          <div class="vid-tip">视频流加载中…</div>
+          <span class="vid-zoom" onclick="event.stopPropagation();toggleMultiZoom(this)" title="放大/缩小">🔍</span>
         </div>
         <div class="mmid">
           <div class="pearl"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           <div class="bigroad"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="roadtag">拍拍黐</span></div>
           <div class="bets">
-            <div class="bc">闲对 1:11</div>
-            <div class="bc">和 1:8</div>
-            <div class="bc">庄对 1:11</div>
-            <div class="bc player">闲 1:1</div>
-            <div class="bc banker">庄 1:0.95</div>
+            <div class="brow">
+              <div class="bc pair-p" onclick="event.stopPropagation();"><span class="zh">闲对</span><span class="od">1:11</span></div>
+              <div class="bc tie" onclick="event.stopPropagation();"><span class="zh">和</span><span class="od">1:8</span></div>
+              <div class="bc pair-b" onclick="event.stopPropagation();"><span class="zh">庄对</span><span class="od">1:11</span></div>
+            </div>
+            <div class="brow">
+              <div class="bc player" onclick="event.stopPropagation();"><span class="zh">闲</span><span class="od">1:1</span></div>
+              <div class="bc banker" onclick="event.stopPropagation();"><span class="zh">庄</span><span class="od">1:0.95</span></div>
+            </div>
           </div>
         </div>
         <div class="mbot">
@@ -2677,27 +2983,36 @@
           <span>庄 <b>28</b></span>
           <span>闲 <b>22</b></span>
           <span>和 <b>5</b></span>
-          <span class="lock" style="color:var(--gold);">🔒</span>
+          <span class="lock on" onclick="event.stopPropagation();toggleLock(this)"><span class="lock-icon">🔒</span> 已锁定</span>
           <span class="enter" onclick="nav('bet')">进入本桌 ›</span>
         </div>
       </div>
 
-      <div class="mcard">
+      <div class="mcard" data-club="CAGAYAN" data-mode="快速" data-deskno="09">
         <div class="mtop">
           <b>CAGAYAN</b> <b>快速桌 09</b>
           <span class="cd">22</span>
-          <span class="vid">▶ 开启视频</span>
-          <span class="limit">20-50K</span>
+          <span class="vid" onclick="event.stopPropagation();toggleMultiVid(this)">▶ 开启视频</span>
+          <span class="limit" onclick="event.stopPropagation();openDialog('table-limit')">20-50K</span>
+        </div>
+        <div class="video-slot">
+          <div class="vid-icon">🎥</div>
+          <div class="vid-tip">视频流加载中…</div>
+          <span class="vid-zoom" onclick="event.stopPropagation();toggleMultiZoom(this)" title="放大/缩小">🔍</span>
         </div>
         <div class="mmid">
           <div class="pearl"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           <div class="bigroad"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           <div class="bets">
-            <div class="bc">闲对 1:11</div>
-            <div class="bc">和 1:8</div>
-            <div class="bc">庄对 1:11</div>
-            <div class="bc player">闲 1:1</div>
-            <div class="bc banker">庄 1:0.95</div>
+            <div class="brow">
+              <div class="bc pair-p" onclick="event.stopPropagation();"><span class="zh">闲对</span><span class="od">1:11</span></div>
+              <div class="bc tie" onclick="event.stopPropagation();"><span class="zh">和</span><span class="od">1:8</span></div>
+              <div class="bc pair-b" onclick="event.stopPropagation();"><span class="zh">庄对</span><span class="od">1:11</span></div>
+            </div>
+            <div class="brow">
+              <div class="bc player" onclick="event.stopPropagation();"><span class="zh">闲</span><span class="od">1:1</span></div>
+              <div class="bc banker" onclick="event.stopPropagation();"><span class="zh">庄</span><span class="od">1:0.95</span></div>
+            </div>
           </div>
         </div>
         <div class="mbot">
@@ -2705,11 +3020,27 @@
           <span>庄 <b>38</b></span>
           <span>闲 <b>41</b></span>
           <span>和 <b>8</b></span>
-          <span class="lock">🔓</span>
+          <span class="lock" onclick="event.stopPropagation();toggleLock(this)"><span class="lock-icon">🔓</span> 锁定本桌</span>
           <span class="enter" onclick="nav('bet')">进入本桌 ›</span>
         </div>
       </div>
     </div>
+
+    <!-- MB7 共享筹码栏（M5 底部，多桌共用一组激活筹码）— Sammy 2026-04-28 二次澄清：
+         多桌**没有好路投注功能**（删 chip-luck），筹码展示从 5 个改 6 个 -->
+    <div class="chip-bar">
+      <div class="chip-set" title="C7 筹码设置" onclick="openDialog('chip')">⚙</div>
+      <div class="chips-mid">
+        <div class="chip" onclick="pickChip(this)">500</div>
+        <div class="chip" onclick="pickChip(this)">1,000</div>
+        <div class="chip active" onclick="pickChip(this)">5,000</div>
+        <div class="chip" onclick="pickChip(this)">10,000</div>
+        <div class="chip" onclick="pickChip(this)">20,000</div>
+        <div class="chip" onclick="pickChip(this)">50,000</div>
+      </div>
+    </div>
+    <!-- 底部 VIP 锁底 -->
+    <div class="multi-vip-foot">🔒 VIP</div>
   </div>
 
   <!-- ============ 抽屉遮罩 ============ -->
@@ -2796,51 +3127,136 @@
     </div>
   </div>
 
-  <!-- ============ B7 好路侧拉面板（大厅 + 单桌共用）============ -->
-  <div class="side-drawer" id="drawer-luck">
-    <div class="sd-hdr">
-      <h3>好路推荐</h3>
-      <span class="sd-sub">12 条</span>
-      <span class="close" onclick="closeAll()">✕</span>
+  <!-- ============ B7 好路投注底部抽屉（Sammy 2026-04-28 截图重做：底抽屉 70%/100% + 富卡片）============ -->
+  <div class="bottom-sheet" id="drawer-luck-bet">
+    <div class="bs-hdr lbet-hdr">
+      <button class="rec-expand" onclick="toggleLuckBetExpand(this)">
+        <span class="rec-expand-text">展开</span>
+        <span class="rec-expand-caret">▾</span>
+      </button>
+      <h3>好路投注 <span class="lbet-count">99</span></h3>
+      <span class="lbet-set" title="好路设置" onclick="openDialog('road')">⚙</span>
+      <span class="close" onclick="closeOne('drawer-luck-bet')">✕</span>
     </div>
-    <div class="sd-body">
-      <div class="luck-list">
-        <div class="luck-item" onclick="nav('bet'); closeAll();">
-          <div class="luck-head"><span class="luck-name">CAG036</span><span class="luck-cd green">15</span></div>
-          <div class="luck-road-small">
-            <i class="r"></i><i class="r"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="r"></i>
+    <div class="bs-body lbet-body">
+      <!-- Card 1：闲 5 vs 8 庄，亮牌 -->
+      <div class="lbet-card">
+        <div class="lbet-top">
+          <span class="lbet-club">★ Casino</span>
+          <b class="lbet-tname">快速桌台71</b>
+          <span class="lbet-no">00</span>
+          <span class="lbet-limit">限红 0.05-50K</span>
+          <span class="lbet-enter" onclick="nav('bet'); closeOne('drawer-luck-bet');">进入本桌 ›</span>
+        </div>
+        <div class="lbet-mid">
+          <div class="lbet-vs">
+            <div class="vs-side player">
+              <span class="vs-zh">闲</span>
+              <span class="vs-pt">5</span>
+            </div>
+            <span class="vs-icon">VS</span>
+            <div class="vs-side banker">
+              <span class="vs-pt">8</span>
+              <span class="vs-zh">庄</span>
+            </div>
+            <div class="vs-cards">
+              <div class="poker red"><span class="pt">6</span><span class="suit">♦</span></div>
+              <div class="poker red"><span class="pt">5</span><span class="suit">♥</span></div>
+              <div class="poker red"><span class="pt">9</span><span class="suit">♦</span></div>
+              <div class="poker red"><span class="pt">A</span><span class="suit">♥</span></div>
+              <div class="poker black"><span class="pt">4</span><span class="suit">♠</span></div>
+            </div>
+            <span class="vs-tag">Player Never Sticks</span>
           </div>
-          <div class="luck-tag">长庄 · 赔率 1:0.95</div>
-          <div class="luck-quick">
-            <button class="qb banker" onclick="event.stopPropagation(); alert('快速下注 庄 1K');">庄 1K</button>
-            <button class="qb player" onclick="event.stopPropagation(); alert('快速下注 闲 1K');">闲 1K</button>
-            <span class="enter">进入本桌 ›</span>
+          <div class="lbet-bets">
+            <div class="bc player dim">
+              <span class="zh">闲</span><span class="en">Player</span><span class="odds">1:11</span>
+            </div>
+            <div class="bc banker">
+              <span class="zh">庄</span><span class="en">Banker</span><span class="odds">1:11</span>
+            </div>
           </div>
         </div>
-        <div class="luck-item" onclick="nav('bet'); closeAll();">
-          <div class="luck-head"><span class="luck-name">NPW12</span><span class="luck-cd red">4</span></div>
-          <div class="luck-road-small">
-            <i class="b"></i><i class="b"></i><i class="b"></i><i class="b"></i><i class="r"></i><i class="b"></i>
+        <div class="lbet-bot">
+          <button class="lbet-cancel">⊗ 取消</button>
+          <button class="lbet-ok">⊙ 确定</button>
+        </div>
+      </div>
+      <!-- Card 2：闲 0 vs 10 庄，部分背面 -->
+      <div class="lbet-card">
+        <div class="lbet-top">
+          <span class="lbet-club">★ Casino</span>
+          <b class="lbet-tname">快速桌台71</b>
+          <span class="lbet-no">20</span>
+          <span class="lbet-limit">限红 0.05-50K</span>
+          <span class="lbet-enter" onclick="nav('bet'); closeOne('drawer-luck-bet');">进入本桌 ›</span>
+        </div>
+        <div class="lbet-mid">
+          <div class="lbet-vs">
+            <div class="vs-side player"><span class="vs-zh">闲</span><span class="vs-pt">0</span></div>
+            <span class="vs-icon">VS</span>
+            <div class="vs-side banker"><span class="vs-pt">10</span><span class="vs-zh">庄</span></div>
+            <div class="vs-cards">
+              <div class="poker back blue"></div>
+              <div class="poker back blue"></div>
+              <div class="poker back red"></div>
+              <div class="poker red"><span class="pt">A</span><span class="suit">♥</span></div>
+            </div>
+            <span class="vs-tag">Player Never Sticks</span>
           </div>
-          <div class="luck-tag">长闲 · 赔率 1:1</div>
-          <div class="luck-quick">
-            <button class="qb banker" onclick="event.stopPropagation(); alert('快速下注 庄 1K');">庄 1K</button>
-            <button class="qb player" onclick="event.stopPropagation(); alert('快速下注 闲 1K');">闲 1K</button>
-            <span class="enter">进入本桌 ›</span>
+          <div class="lbet-bets">
+            <div class="bc player dim"><span class="zh">闲</span><span class="en">Player</span><span class="odds">1:11</span></div>
+            <div class="bc banker"><span class="zh">庄</span><span class="en">Banker</span><span class="odds">1:11</span></div>
           </div>
         </div>
-        <div class="luck-item" onclick="nav('bet'); closeAll();">
-          <div class="luck-head"><span class="luck-name">SOL08</span><span class="luck-cd green">22</span></div>
-          <div class="luck-road-small">
-            <i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i><i class="r"></i><i class="b"></i>
+        <div class="lbet-bot">
+          <button class="lbet-cancel">⊗ 取消</button>
+          <button class="lbet-ok">⊙ 确定</button>
+        </div>
+      </div>
+      <!-- Card 3：闲 0 vs 0 庄，全背面（待发牌）-->
+      <div class="lbet-card">
+        <div class="lbet-top">
+          <span class="lbet-club">★ Casino</span>
+          <b class="lbet-tname">快速桌台71</b>
+          <span class="lbet-no">00</span>
+          <span class="lbet-limit">限红 0.05-50K</span>
+          <span class="lbet-enter" onclick="nav('bet'); closeOne('drawer-luck-bet');">进入本桌 ›</span>
+        </div>
+        <div class="lbet-mid">
+          <div class="lbet-vs">
+            <div class="vs-side player"><span class="vs-zh">闲</span><span class="vs-pt">0</span></div>
+            <span class="vs-icon">VS</span>
+            <div class="vs-side banker"><span class="vs-pt">0</span><span class="vs-zh">庄</span></div>
+            <div class="vs-cards">
+              <div class="poker back blue"></div>
+              <div class="poker back blue"></div>
+              <div class="poker back red"></div>
+              <div class="poker back red"></div>
+            </div>
           </div>
-          <div class="luck-tag">BigRoad1Hop · 赔率 1:1</div>
-          <div class="luck-quick">
-            <button class="qb banker" onclick="event.stopPropagation(); alert('快速下注 庄 1K');">庄 1K</button>
-            <button class="qb player" onclick="event.stopPropagation(); alert('快速下注 闲 1K');">闲 1K</button>
-            <span class="enter">进入本桌 ›</span>
+          <div class="lbet-bets">
+            <div class="bc player dim"><span class="zh">闲</span><span class="en">Player</span><span class="odds">1:11</span></div>
+            <div class="bc banker"><span class="zh">庄</span><span class="en">Banker</span><span class="odds">1:11</span></div>
           </div>
         </div>
+        <div class="lbet-bot">
+          <button class="lbet-cancel">⊗ 取消</button>
+          <button class="lbet-ok">⊙ 确定</button>
+        </div>
+      </div>
+    </div>
+    <!-- B7.1 好路投注 底部筹码条（Sammy 2026-04-28 截图：⚙ + 6 颗筹码；不重复 💡 自身）
+         共享 M4 单桌 chipsActive state：选筹后点卡内"确定"即下注到对应桌 -->
+    <div class="chip-bar lbet-chips">
+      <div class="chip-set" title="C7 筹码设置" onclick="openDialog('chip')">⚙</div>
+      <div class="chips-mid">
+        <div class="chip" onclick="pickChip(this)">500</div>
+        <div class="chip" onclick="pickChip(this)">1,000</div>
+        <div class="chip active" onclick="pickChip(this)">5,000</div>
+        <div class="chip" onclick="pickChip(this)">10,000</div>
+        <div class="chip" onclick="pickChip(this)">20,000</div>
+        <div class="chip" onclick="pickChip(this)">50,000</div>
       </div>
     </div>
   </div>
@@ -2990,13 +3406,17 @@
     </div>
   </div>
 
-  <!-- ============ C3 游戏记录抽屉（2026-04-24 按 Sammy 截图字段）============ -->
+  <!-- ============ C3 游戏记录抽屉（Sammy 2026-04-28 截图重做：加"展开"切高度 + 多行结果 + 金色 info 条 + 蓝底导出）============ -->
   <div class="bottom-sheet" id="drawer-record">
-    <div class="bs-hdr">
-      <h3 style="flex:1; text-align:center;">游戏记录</h3>
+    <div class="bs-hdr record-hdr">
+      <button class="rec-expand" onclick="toggleRecordExpand(this)">
+        <span class="rec-expand-text">展开</span>
+        <span class="rec-expand-caret">▾</span>
+      </button>
+      <h3>游戏记录</h3>
       <span class="close" onclick="closeOne('drawer-record')">✕</span>
     </div>
-    <div class="record-warn">仅显示最新24小时内的游戏记录</div>
+    <div class="record-warn"><span class="rwi">ⓘ</span>仅显示最新24小时内的游戏记录</div>
     <div class="bs-body">
       <table>
         <thead>
@@ -3013,33 +3433,59 @@
         </thead>
         <tbody>
           <tr>
-            <td class="time">20:53</td>
-            <td>ONBSB0...</td>
-            <td class="bet-content">庄</td>
-            <td class="amount">1万</td>
-            <td><span class="stat-cancel">撤单</span></td>
-            <td></td>
-            <td><span class="pl-zero">0万</span></td>
-            <td><span class="view">查看</span></td>
-          </tr>
-          <tr>
-            <td class="time">20:52</td>
-            <td>ONBSB0...</td>
-            <td class="bet-content">庄</td>
-            <td class="amount">5万</td>
+            <td class="time">16:14</td><td>ONB032…</td>
+            <td class="bet-content">庄</td><td class="amount">2万</td>
             <td><span class="stat-ok">成功</span></td>
-            <td><span class="result">闲赢</span></td>
-            <td><span class="pl-neg">-5万</span></td>
+            <td><span class="result-multi"><span class="result">闲赢</span><span class="result">庄对</span></span></td>
+            <td><span class="pl-neg">-2.85万</span></td>
             <td><span class="view">查看</span></td>
           </tr>
           <tr>
-            <td class="time">20:52</td>
-            <td>ONBSB0...</td>
-            <td class="bet-content">庄</td>
-            <td class="amount">7.3万</td>
-            <td><span class="stat-cancel">撤单</span></td>
-            <td><span class="result">闲赢</span></td>
-            <td><span class="pl-zero">0万</span></td>
+            <td class="time">16:14</td><td>ONB032…</td>
+            <td class="bet-content">庄</td><td class="amount">2万</td>
+            <td><span class="stat-ok">成功</span></td>
+            <td><span class="result-multi"><span class="result">闲赢</span><span class="result">庄对</span></span></td>
+            <td><span class="pl-neg">-2.85万</span></td>
+            <td><span class="view">查看</span></td>
+          </tr>
+          <tr>
+            <td class="time">16:14</td><td>ONB032…</td>
+            <td class="bet-content">庄</td><td class="amount">2万</td>
+            <td><span class="stat-ok">成功</span></td>
+            <td><span class="result-multi"><span class="result">闲赢</span><span class="result">庄对</span></span></td>
+            <td><span class="pl-neg">-2.85万</span></td>
+            <td><span class="view">查看</span></td>
+          </tr>
+          <tr>
+            <td class="time">16:14</td><td>ONB032…</td>
+            <td class="bet-content">庄</td><td class="amount">2万</td>
+            <td><span class="stat-ok">成功</span></td>
+            <td><span class="result-multi"><span class="result">闲赢</span><span class="result">庄对</span></span></td>
+            <td><span class="pl-neg">-2.85万</span></td>
+            <td><span class="view">查看</span></td>
+          </tr>
+          <tr>
+            <td class="time">16:14</td><td>ONB032…</td>
+            <td class="bet-content">庄</td><td class="amount">2万</td>
+            <td><span class="stat-ok">成功</span></td>
+            <td><span class="result-multi"><span class="result">闲赢</span><span class="result">庄对</span></span></td>
+            <td><span class="pl-neg">-2.85万</span></td>
+            <td><span class="view">查看</span></td>
+          </tr>
+          <tr>
+            <td class="time">16:14</td><td>ONB032…</td>
+            <td class="bet-content">庄</td><td class="amount">2万</td>
+            <td><span class="stat-ok">成功</span></td>
+            <td><span class="result-multi"><span class="result">闲赢</span><span class="result">庄对</span></span></td>
+            <td><span class="pl-neg">-2.85万</span></td>
+            <td><span class="view">查看</span></td>
+          </tr>
+          <tr>
+            <td class="time">16:14</td><td>ONB032…</td>
+            <td class="bet-content">庄</td><td class="amount">2万</td>
+            <td><span class="stat-ok">成功</span></td>
+            <td><span class="result-multi"><span class="result">闲赢</span><span class="result">庄对</span></span></td>
+            <td><span class="pl-neg">-2.85万</span></td>
             <td><span class="view">查看</span></td>
           </tr>
         </tbody>
@@ -3047,8 +3493,8 @@
     </div>
     <!-- 底部：总上下数 + 导出按钮 -->
     <div class="record-foot">
-      <span class="total">总上下数 <b>-5万</b></span>
-      <button class="export">↗ 导出</button>
+      <span class="total">总上下数 <b>-4.1万</b></span>
+      <button class="export"><span class="exp-ic">↗</span> 导出</button>
     </div>
   </div>
 
@@ -3222,12 +3668,12 @@
           </div>
         </div>
         <div class="section-title" style="margin-top:18px;">常用筹码选择 <span class="hint" id="custom-chips-count">11 / 11</span></div>
-        <!-- Sammy 2026-04-27 Q23 修订：合并现状 menu-bar.tsx "自定筹码" 到系统设置；
-             现状 config.slice.selectedChips: number[]（默认 [0..10] 全选）；至少保留 5 个；
+        <!-- Sammy 2026-04-27 Q23 修订 + 2026-04-28 二次澄清：合并现状 menu-bar.tsx "自定筹码" 到系统设置；
+             现状 config.slice.selectedChips: number[]（默认 [0..10] 全选）；至少保留 6 个（与筹码条展示数量对齐）；
              触发原现状 dispatch(setSelectedChips(tempChipList))；
              M4 单桌 menu-bar 的 ⚙ chipSettingImg 入口保留（双入口共享同一 state） -->
         <div class="custom-chips-grid" id="custom-chips-grid"></div>
-        <div class="hint small">最少保留 5 个；已选筹码会出现在下注栏（M4 单桌筹码条）</div>
+        <div class="hint small">最少保留 6 个；已选筹码会出现在下注栏（M4 单桌筹码条 / M5 多桌共享筹码条均展示 6 个）</div>
       </div>
     </div>
   </div>
@@ -3780,8 +4226,9 @@
   function toggleCustomChip(i) {
     const idx = customChipIdx.indexOf(i);
     if (idx >= 0) {
-      // 现状逻辑（menu-bar.tsx L579）：tempChipList.length > 5 才能移除
-      if (customChipIdx.length <= 5) { alert('至少保留 5 个'); return; }
+      // Sammy 2026-04-28：筹码条改 6 个，最少保留同步 5→6
+      // 实施侧改现状 menu-bar.tsx L579：tempChipList.length > 6 才能移除
+      if (customChipIdx.length <= 6) { alert('至少保留 6 个'); return; }
       customChipIdx.splice(idx, 1);
     } else {
       customChipIdx.push(i);
@@ -4254,6 +4701,215 @@
     }
   }
   document.addEventListener('DOMContentLoaded', () => setTimeout(renderAllRoads, 150));
+
+  // ===== B7 好路投注 底部抽屉（Sammy 2026-04-28 截图，从筹码栏右 iron 触发）=====
+  // 现状链路保留：luckRoads slice + RoadTipDrag + QuickBet 下注；UI 形态由原侧拉抽屉换为 70%/100% 底部抽屉
+  function openLuckBetDrawer() {
+    document.getElementById('mask').classList.add('open');
+    document.getElementById('drawer-luck-bet').classList.add('open');
+  }
+  function toggleLuckBetExpand(btn) {
+    const drawer = document.getElementById('drawer-luck-bet');
+    if (!drawer) return;
+    const expanded = drawer.classList.toggle('expanded');
+    const txt = btn.querySelector('.rec-expand-text');
+    if (txt) txt.textContent = expanded ? '收起' : '展开';
+  }
+
+  // ===== C3 游戏记录抽屉"展开"切换（Sammy 2026-04-28 截图）=====
+  // 默认 70%；点击"展开 ▾"撑满全屏 100%（caret 旋转 180°，文字变"收起"）
+  function toggleRecordExpand(btn) {
+    const drawer = document.getElementById('drawer-record');
+    if (!drawer) return;
+    const expanded = drawer.classList.toggle('expanded');
+    const txt = btn.querySelector('.rec-expand-text');
+    if (txt) txt.textContent = expanded ? '收起' : '展开';
+  }
+
+  // ===== B3.1 单桌下注区中央倒计时圆环 3 态（Sammy 2026-04-28 决策）=====
+  // 投注中（betting：倒计时数字）→ 开牌中（opening：文字）→ 洗牌中（shuffle：换靴文字）→ 回投注中
+  // 实施按现状 desk.desk_status：2=GameIng 投注/3=Opening 开牌/4=ShoeChange 洗牌/换靴 → DOM class 切换
+  function cycleBetCdState() {
+    const cd = document.getElementById('bet-cd-center');
+    if (!cd) return;
+    const states = ['betting', 'opening', 'shuffle'];
+    const labels = { opening:'开牌中', shuffle:'换靴' };
+    let cur = states.findIndex(s => cd.classList.contains(s));
+    if (cur < 0) cur = 0;
+    const next = (cur + 1) % states.length;
+    states.forEach(s => cd.classList.remove(s));
+    cd.classList.add(states[next]);
+    if (states[next] !== 'betting') {
+      const lbl = document.getElementById('bet-cd-label');
+      if (lbl) lbl.textContent = labels[states[next]];
+    }
+  }
+
+  // M5 多桌卡视频区放大/缩小（视频区唯一保留的控件，Sammy 2026-04-28 决策）
+  // 实施按现状 C8.1 zoom 链路（bet-video.zoomed），多桌仅卡内放大演示，不全屏。
+  function toggleMultiZoom(el) {
+    const slot = el.closest('.video-slot');
+    if (!slot) return;
+    slot.classList.toggle('zoomed');
+  }
+
+  // M5 多桌卡视频开/关切换（MB5.6 现状代码：sessionStorage activeVideoDeskNo 同时仅 1 路）
+  // Sammy 2026-04-28：开启后必须显示视频占位区（替换珠盘+大路区），点关闭恢复
+  function toggleMultiVid(el) {
+    const card = el.closest('.mcard');
+    const isOn = el.classList.toggle('on');
+    el.innerHTML = isOn ? '⏸ 关闭视频' : '▶ 开启视频';
+    if (card) card.classList.toggle('vid-on', isOn);
+    // "同时仅开 1 路视频"：开第二路时自动关前一路
+    if (isOn) {
+      document.querySelectorAll('.mcard .vid.on').forEach(other => {
+        if (other !== el) {
+          other.classList.remove('on');
+          other.innerHTML = '▶ 开启视频';
+          const oc = other.closest('.mcard');
+          if (oc) oc.classList.remove('vid-on');
+        }
+      });
+    }
+  }
+
+  // ===== M5 多桌筛选/排序状态（club + 排序；多桌全是快速桌，无需类型筛选）=====
+  window.multiFilters = { club: '全部赌场', sort: '默认' };
+
+  // ===== MB3 M5 排序下拉（4 项：默认/好路/低至高/高至低，与首页 H6 一致）=====
+  function toggleMultiSort(el) {
+    const open = el.classList.contains('open');
+    document.querySelectorAll('.multi-toolbar .hall-sort').forEach(s => s.classList.remove('open'));
+    if (!open) el.classList.add('open');
+  }
+  function pickMultiSort(el, label) {
+    const sort = el.closest('.hall-sort');
+    if (!sort) return;
+    sort.querySelectorAll('.sp-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    const txt = document.getElementById('multi-sort-text');
+    if (txt) txt.textContent = label;
+    sort.classList.remove('open');
+    multiFilters.sort = label;
+    // 实施按现状 changeSortType action（src/store/diantou/lobby.slice）。
+    applyMultiAll();
+  }
+
+  // 点外部关闭 M5 排序下拉
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.multi-toolbar .hall-sort')) {
+      document.querySelectorAll('.multi-toolbar .hall-sort').forEach(s => s.classList.remove('open'));
+    }
+  });
+
+  // ===== MB2 切换场馆联动多桌列表：拦截 pickTab，当 Tab 在 #page-multi 时走 M5 筛选 =====
+  // 原 H5 大厅页 pickTab 行为不变（只换 banner）；M5 页 Tab 额外过滤多桌列表（按 club_id）
+  (function hookPickTabForMulti() {
+    const _origPickTab = window.pickTab;
+    window.pickTab = function(el) {
+      if (typeof _origPickTab === 'function') _origPickTab(el);
+      if (el && el.closest && el.closest('#page-multi')) {
+        const txtEl = el.querySelector('.tab-text');
+        const club = (txtEl ? txtEl.textContent.trim() : el.textContent.replace(/\d+/g,'').trim());
+        multiFilters.club = club;
+        applyMultiAll();
+      }
+    };
+  })();
+
+  // ===== MB3 桌台刷新（Sammy 2026-04-28 决策）=====
+  // 行为：① 模拟刷新所有桌台状态（倒计时/局数/路图微动） ② 滚动 multi-list 到最顶部
+  // ③ 按钮 spinning + 列表 flash 视觉反馈，800ms 后恢复
+  // 实施：dispatch(reloadDeskList())（multi.slice）→ 调 deskListMultiBet API → 重渲染 multi.deskInfos
+  function refreshMultiList(btn) {
+    if (!btn || btn.classList.contains('spinning')) return;
+    btn.classList.add('spinning');
+    const list = document.querySelector('.multi-list');
+    if (!list) return;
+
+    // ① 视觉：列表蒙层闪一下
+    list.classList.remove('refreshing');
+    void list.offsetWidth; // 强制 reflow 让动画重启
+    list.classList.add('refreshing');
+
+    // ② 滚动列表到顶部（用户滑到底也回顶）
+    list.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // ③ 演示数据刷新：倒计时随机重置 + 局数 +1（仅原型，实施按 multi.slice deskInfos refresh）
+    list.querySelectorAll('.mcard').forEach(card => {
+      const cd = card.querySelector('.mtop .cd');
+      if (cd) {
+        const n = Math.floor(Math.random() * 25) + 5;
+        cd.textContent = String(n);
+        cd.style.background = n <= 5 ? 'var(--red)' : 'var(--green)';
+      }
+      // 局 +1 演示
+      const jb = card.querySelector('.mbot span:first-child b');
+      if (jb) {
+        const v = parseInt(jb.textContent || '0', 10);
+        if (!isNaN(v)) jb.textContent = String(v + 1);
+      }
+    });
+
+    // ④ 800ms 后清状态
+    setTimeout(() => {
+      btn.classList.remove('spinning');
+      list.classList.remove('refreshing');
+    }, 800);
+  }
+
+  // ===== M5 综合应用：按 club 过滤 + 排序 + 锁定置顶 =====
+  function applyMultiAll() {
+    const list = document.querySelector('.multi-list');
+    if (!list) return;
+    const cards = Array.from(list.querySelectorAll('.mcard'));
+    cards.forEach(card => {
+      const club = card.getAttribute('data-club') || '';
+      let show = true;
+      // club 过滤："全部赌场" 全显，否则按 data-club 精确匹配
+      if (multiFilters.club && multiFilters.club !== '全部赌场' && club !== multiFilters.club) show = false;
+      card.style.display = show ? '' : 'none';
+    });
+    // 排序仅作用于未锁定段；锁定段始终在前
+    applyMultiSortOrder();
+  }
+
+  // ===== MB6 锁定本桌（多桌置顶）=====
+  // Sammy 2026-04-28 决策（Q27）：锁 Iron + "锁定本桌"文字，可置顶多个，
+  // 已置顶卡片不受筛选/排序影响，永远位列表前段。
+  function toggleLock(el) {
+    const card = el.closest('.mcard');
+    if (!card) return;
+    const isOn = el.classList.toggle('on');
+    if (isOn) {
+      el.innerHTML = '<span class="lock-icon">🔒</span> 已锁定';
+      card.classList.add('locked');
+    } else {
+      el.innerHTML = '<span class="lock-icon">🔓</span> 锁定本桌';
+      card.classList.remove('locked');
+    }
+    applyMultiSortOrder();
+  }
+  // 把所有 .locked 移到列表顶部，未锁定保持其相对顺序在后；
+  // 同时给已锁定的 .mcard 加上 .locked 视觉（金色细描边）。
+  function applyMultiSortOrder() {
+    const list = document.querySelector('.multi-list');
+    if (!list) return;
+    const cards = Array.from(list.children).filter(n => n.classList && n.classList.contains('mcard'));
+    const locked = cards.filter(c => c.classList.contains('locked'));
+    const others = cards.filter(c => !c.classList.contains('locked'));
+    // 重新挂载，先锁定后未锁定，保持各自相对顺序
+    locked.forEach(c => list.appendChild(c));
+    others.forEach(c => list.appendChild(c));
+  }
+  // 初始化：根据 .lock.on 给父 .mcard 加 .locked，并按规则重排
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.mcard .lock.on').forEach(lk => {
+      const card = lk.closest('.mcard');
+      if (card) card.classList.add('locked');
+    });
+    applyMultiSortOrder();
+  });
 
   // B3 切桌抽屉视图切换（全路 / 极简）
   function swSetView(el, mode) {
