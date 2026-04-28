@@ -729,8 +729,9 @@
   }
 
   /* ===== 单桌页（Figma node 11903:184490；产品层面不分模式，下注区分两页展示所有注项）===== */
+  /* Sammy 2026-04-27：视频区 230 → 215，整体下方上移 15px 给路图区腾空间 */
   .bet-video {
-    height:230px; background:linear-gradient(180deg,#0a1a2e,#1a3a5e); position:relative; flex-shrink:0;
+    height:215px; background:linear-gradient(180deg,#0a1a2e,#1a3a5e); position:relative; flex-shrink:0;
     display:flex; align-items:center; justify-content:center; color:var(--ink-3); font-size:14px;
     overflow:hidden;
   }
@@ -813,10 +814,12 @@
     border:1px solid rgba(255,255,255,.15); cursor:pointer;
   }
 
-  /* 下注块底部 meta（👤人数 + 已下注金额） */
+  /* 下注块底部 meta（👤人数 + 已下注金额）— Figma 8px Roboto Bold #ffffff60 */
   .bet-cell .bet-meta {
     position:absolute; bottom:4px; left:6px; right:6px;
-    display:flex; justify-content:space-between; font-size:9px; color:rgba(255,255,255,.7);
+    display:flex; justify-content:space-between;
+    font-size:8px; font-weight:700; font-family:"Roboto", sans-serif;
+    color:rgba(255,255,255,.6);
   }
 
   /* 筹码栏下方页码指示器（· · · · 4 档筹码集预留，暂保留视觉） */
@@ -831,9 +834,10 @@
   .bet-area .bet-page { display:none; }
   .bet-area .bet-page.active { display:block; }
   /* 页签指示器：放在下注区顶部居中（"和"注区正上方），Sammy 2026-04-24 位置要求 */
+  /* Sammy 2026-04-27：上下 padding 缩小，让下注区往上挪 */
   .bet-area .bet-pager {
     display:flex; align-items:center; justify-content:center; gap:8px;
-    padding:4px 0 6px; z-index:5;
+    padding:2px 0 4px; z-index:5;
     background:transparent;
   }
   .bet-area .bet-pager .arrow {
@@ -854,21 +858,22 @@
   }
   .chip-luck { position:relative; }
 
-  /* Win/Lose 右侧展开箭头 */
+  /* Win/Lose 右侧展开箭头（Sammy 2026-04-27：从 absolute 改 inline flex 末尾，避免叠到长数字）*/
   .data-row .wl-toggle {
-    position:absolute; right:10px; top:50%; transform:translateY(-50%);
+    flex-shrink:0;
     width:28px; height:28px; border-radius:6px; background:rgba(255,255,255,.08);
     display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--ink-2);
     cursor:pointer; border:1px solid rgba(255,255,255,.15);
+    transition:transform .2s;
   }
-  .data-row { position:relative; padding-right:48px; }
   .data-row .stat .win { color:#29ff37; }
 
   /* M4 投注台（Figma node 11903:185008 390×341；对应下注 Page 1 / Page 2 共用布局）
      布局：上排 闲对/和/庄对 + 中排 闲/庄 + 下排 老虎 Lucky6 */
+  /* Sammy 2026-04-27：改 flex:none 不抢余下空间，下注区紧贴操作栏，余下空间给路图区 */
   .bet-area {
-    flex:1; background:linear-gradient(180deg,#0c2a1a,#081f12); position:relative; overflow:hidden;
-    padding:8px; display:flex; flex-direction:column; gap:6px;
+    flex:0 0 auto; background:linear-gradient(180deg,#0c2a1a,#081f12); position:relative; overflow:hidden;
+    padding:2px 8px 4px; display:flex; flex-direction:column; gap:4px;
   }
   .bet-area .pager { display:flex; justify-content:center; gap:4px; }
   .bet-area .pager i { width:6px; height:6px; border-radius:50%; background:var(--ink-3); }
@@ -885,22 +890,41 @@
   /* 下排 1 栏：老虎 Lucky6 */
   .bet-row.row-lucky { height:62px; }
 
+  /* Figma node 12185:190253 校准：bet-cell 字体/字号/颜色 */
   .bet-cell {
     position:relative; border-radius:4px; cursor:pointer; overflow:hidden;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
     font-family:"PingFang SC", sans-serif;
   }
-  .bet-cell .zh { font-size:16px; font-weight:500; color:#fff; line-height:1; }
-  .bet-cell .en { font-size:10px; color:rgba(255,255,255,.75); letter-spacing:.3px; }
-  .bet-cell .odds { font-size:14px; color:#fff; font-weight:500; margin-top:2px; }
+  .bet-cell .zh {
+    font-size:16px; font-weight:600; line-height:20px;
+  }
+  .bet-cell .en {
+    font-size:10px; font-weight:600; line-height:12px; letter-spacing:.3px;
+  }
+  .bet-cell .odds {
+    font-size:10px; color:#c3e1ff; font-weight:600; letter-spacing:.8px; line-height:16px;
+    margin-top:4px;
+  }
+  /* 闲/庄主块字号更大（Figma 18px）*/
+  .bet-cell.player .zh,
+  .bet-cell.banker .zh { font-size:18px; }
+  .bet-cell.player .en,
+  .bet-cell.banker .en { font-size:12px; }
 
-  /* 颜色（Figma 稿 Banker 红系 / Player 蓝系 / Tie 绿系，对子带 mask group 背景） */
-  .bet-cell.pair-p { background:linear-gradient(135deg, rgba(0,131,255,.3), rgba(0,131,255,.15)); border:1px solid rgba(0,131,255,.4); }
-  .bet-cell.pair-b { background:linear-gradient(135deg, rgba(255,25,33,.3), rgba(255,25,33,.15)); border:1px solid rgba(255,25,33,.4); }
-  .bet-cell.tie    { background:linear-gradient(135deg, rgba(0,197,0,.35), rgba(0,197,0,.15)); border:1px solid rgba(0,197,0,.5); }
-  .bet-cell.player { background:linear-gradient(135deg, rgba(0,131,255,.45), rgba(0,131,255,.2)); border:1px solid rgba(0,131,255,.6); }
-  .bet-cell.banker { background:linear-gradient(135deg, rgba(255,25,33,.45), rgba(255,25,33,.2)); border:1px solid rgba(255,25,33,.6); }
+  /* 颜色（Figma 准确色值）：闲对/庄对/和 透明 + 0.8px 边；闲/庄 实色块 */
+  .bet-cell.pair-p { background:transparent; border:0.8px solid #2f3f53; }
+  .bet-cell.pair-p .zh, .bet-cell.pair-p .en { color:#0096ff; }
+  .bet-cell.pair-b { background:transparent; border:0.8px solid #2f3f53; }
+  .bet-cell.pair-b .zh, .bet-cell.pair-b .en { color:#ff4646; }
+  .bet-cell.tie    { background:transparent; border:0.8px solid #2f3f53; }
+  .bet-cell.tie .zh, .bet-cell.tie .en { color:#00d278; }
+  .bet-cell.player { background:#1e3c78; border:0.8px solid #3c78f0; }
+  .bet-cell.player .zh, .bet-cell.player .en { color:#0096ff; }
+  .bet-cell.banker { background:#8c1414; border:0.8px solid #ff3c3c; }
+  .bet-cell.banker .zh, .bet-cell.banker .en { color:#ff2d2d; }
   .bet-cell.lucky  { background:linear-gradient(135deg, rgba(255,102,25,.3), rgba(255,102,25,.15)); border:1px solid rgba(255,102,25,.5); }
+  .bet-cell.lucky .zh { color:#ff6619; }
 
   /* 赔率居左上角 */
   .bet-cell .odds-label { position:absolute; top:4px; left:6px; font-size:10px; color:rgba(255,255,255,.6); }
@@ -913,38 +937,67 @@
   }
 
   /* 操作栏 取消/重复/确定（Figma btn_cancel 125×32）*/
+  /* Figma node 12185:190253 校准：32 高、4 圆角、深灰渐变、1px 白边、三按钮统一视觉 */
   .ops {
-    display:flex; gap:8px; padding:8px; background:var(--panel-2); flex-shrink:0;
+    display:flex; gap:4px; padding:4px; background:linear-gradient(180deg,#1c2838,#141c24); flex-shrink:0;
   }
   .ops button {
-    flex:1; height:32px; border-radius:16px; font-size:13px; cursor:pointer;
-    background:rgba(0,0,0,.4); color:#fff; border:1px solid rgba(255,255,255,.2);
-    font-family:"PingFang SC", sans-serif;
+    flex:1; height:32px; border-radius:4px; cursor:pointer;
+    border:1px solid #fff; color:#e1f0ff;
+    font-family:"PingFang TC", "PingFang SC", sans-serif; font-weight:500; font-size:14px;
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    background:linear-gradient(0deg, rgb(65,80,95) 33%, rgb(86,103,125) 100%);
   }
+  .ops button.cancel { background:linear-gradient(0deg, rgb(65,80,95) 33%, rgb(86,103,125) 100%); }
+  .ops button.revoke { background:linear-gradient(0deg, rgb(81,93,92) 33%, rgb(121,121,121) 100%); }
+  /* 已下注待确认 / 默认 active 状态：金色高亮 */
   .ops button.ok {
-    background:linear-gradient(180deg, rgb(237,209,133), rgb(232,189,112));
-    color:#492c00; border:1.5px solid #fff; font-weight:600;
+    background:linear-gradient(0deg, rgb(232,189,112) 33%, rgb(237,209,133) 100%);
+    color:#492c00; border:1px solid rgba(255,255,255,.6); font-weight:600;
+  }
+  .ops button .ic-circle {
+    font-size:14px; line-height:1; flex-shrink:0;
+    background:none; width:auto; height:auto;
   }
 
-  /* 筹码栏（Figma y:549-601 52 高）*/
+  /* 筹码栏（Figma node 12185:194646：容器 70 高，渐变背景 #141c24→#111921；
+     左 ⚙ 设置 / 中 5 颗筹码（44×44，active 51）/ 右 💡 好路 + 红角标；底部细线指示）*/
   .chip-bar {
-    display:flex; gap:6px; padding:6px 8px; background:#0a0d12; overflow-x:auto;
-    flex-shrink:0; align-items:center;
+    height:70px; flex-shrink:0; position:relative;
+    display:flex; gap:8px; padding:6px 4px; align-items:center;
+    background:linear-gradient(180deg, #141c24, #111921);
+    overflow:hidden;
   }
   .chip-bar::-webkit-scrollbar { display:none; }
   .chip-set, .chip-luck {
-    width:32px; height:32px; border-radius:8px; flex-shrink:0;
-    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+    width:32px; height:32px; border-radius:50%; flex-shrink:0;
+    background:radial-gradient(circle at 30% 30%, #2a3340, #141c24);
+    border:1px solid rgba(255,255,255,.12);
     display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;
     color:#eed38d;
   }
   .chip-luck { margin-left:auto; }
-  .chip {
-    width:40px; height:40px; border-radius:50%; flex-shrink:0;
-    background:radial-gradient(circle, #c9a24e, #8b6f2f); color:#fff; font-weight:600; font-size:11px;
-    display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px dashed rgba(255,255,255,.3);
+  /* 中间 5 颗筹码区，可滑动 */
+  .chip-bar .chips-mid {
+    display:flex; gap:8px; align-items:center; padding:0 4px;
+    flex:1; overflow-x:auto; scroll-snap-type:x mandatory;
   }
-  .chip.active { border-color:#fff; box-shadow:0 0 0 2px var(--gold), 0 0 12px var(--gold); transform:translateY(-3px); }
+  .chip-bar .chips-mid::-webkit-scrollbar { display:none; }
+  .chip {
+    width:44px; height:44px; border-radius:50%; flex-shrink:0;
+    color:#fff; font-weight:700; font-size:11px; letter-spacing:-0.33px;
+    font-family:"D-DIN-PRO", "Roboto", sans-serif;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    opacity:.6; transition:opacity .2s, transform .2s;
+    scroll-snap-align:center;
+  }
+  .chip:not(.active) { background:radial-gradient(circle at 30% 30%, #c9a24e, #8b6f2f); border:2px solid rgba(255,255,255,.3); }
+  .chip.active {
+    width:51px; height:51px; opacity:1; font-size:14px; letter-spacing:-0.42px;
+    background:radial-gradient(circle at 30% 30%, var(--red), #5a1414);
+    border:2px dashed #fff;
+    box-shadow:0 0 12px rgba(255,80,80,.5);
+  }
   .bet-cell.bet-hit { box-shadow:0 0 0 2px #fff, 0 0 16px var(--gold); transform:scale(.97); }
   .bet-cell { transition:transform .15s, box-shadow .15s; }
   .chip.green { background:radial-gradient(circle, var(--green), #1d5a3a); }
@@ -952,38 +1005,90 @@
   .chip.red { background:radial-gradient(circle, var(--red), #7a2420); }
   .chip.purple { background:radial-gradient(circle, #9b59b6, #4a2a5e); }
 
-  /* Balance / Bet / Win-Lose 三栏（Figma 统计栏）*/
+  /* Balance / Bet / Win-Lose 三栏（Figma 统计栏）— Sammy 2026-04-27 改回上下两行（数字大不易超出） */
   .data-row {
     display:flex; padding:8px 12px; background:var(--panel-2); flex-shrink:0;
     font-family:"PingFang SC", sans-serif; border-top:1px solid var(--line);
+    align-items:center; gap:8px;
   }
   .data-row .stat {
-    flex:1; display:flex; flex-direction:column; gap:2px; align-items:flex-start;
+    flex:1; display:flex; flex-direction:column; gap:2px; align-items:flex-start; min-width:0;
   }
-  .data-row .stat label { font-size:10px; color:var(--ink-3); }
-  .data-row .stat b { font-size:13px; color:#fff; font-weight:500; }
+  .data-row .stat label { font-size:10px; color:var(--ink-3); white-space:nowrap; }
+  .data-row .stat b { font-size:13px; color:#fff; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  /* .refresh 已删（Sammy 2026-04-27：Balance/Bet 后无功能不放刷新 icon）*/
 
+  /* Sammy 2026-04-27：路图 5 路完整版（珠盘 / 大路 / 大眼仔 / 小路 / 蟑螂）*/
   .road-area {
-    height:90px; background:#0a0d12; border-top:1px solid var(--line); flex-shrink:0;
-    display:grid; grid-template-columns:50px 1fr; gap:2px; padding:2px;
+    flex:1 1 auto; min-height:120px; background:#fff; border-top:1px solid var(--line);
+    display:grid; grid-template-columns:80px 1fr; gap:1px; padding:0;
   }
-  .road-area .pearl { background:#0a0d12; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; }
-  .road-area .pearl i { display:block; border-radius:50%; background:var(--red); opacity:.7; }
-  .road-area .pearl i:nth-child(2n) { background:var(--blue); }
-  .road-area .pearl i:nth-child(7n) { background:var(--green); }
-  .road-area .bigroad { background:#0a0d12; display:grid; grid-template-columns:repeat(20,1fr); grid-template-rows:repeat(6,1fr); gap:1px; }
-  .road-area .bigroad i { border-radius:50%; background:var(--red); opacity:.8; }
-  .road-area .bigroad i:nth-child(3n){ background:var(--blue); }
-  .road-area .bigroad i:nth-child(11n){ background:transparent; }
+  .pearl, .bigroad, .bigeye, .smallrd, .cockroach {
+    background:#fff; position:relative;
+    background-image:linear-gradient(to right, rgba(0,0,0,.08) 1px, transparent 1px),
+                     linear-gradient(to bottom, rgba(0,0,0,.08) 1px, transparent 1px);
+    background-size:calc(100%/var(--cols)) calc(100%/6);
+  }
+  .pearl    { --cols:6; }
+  .bigroad  { --cols:30; }
+  .bigeye   { --cols:25; }
+  .smallrd  { --cols:25; }
+  .cockroach{ --cols:25; }
+  .right-roads { display:grid; grid-template-rows:1fr 1fr; gap:1px; }
+  .below-roads { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:rgba(0,0,0,.1); }
+  /* 路图圆点（大路/珠盘）*/
+  .road-area .dot {
+    position:absolute; width:calc(100%/var(--cols)); height:calc(100%/6);
+    display:flex; align-items:center; justify-content:center;
+    font-size:8px; font-weight:600;
+  }
+  .road-area .dot::before {
+    content:""; width:75%; height:75%; border-radius:50%;
+    border:1.5px solid currentColor;
+  }
+  .road-area .dot.banker { color:#e30013; }
+  .road-area .dot.player { color:#1167d6; }
+  .road-area .dot.tie    { color:#10a956; }
+  /* 实心：珠盘/小路 */
+  .road-area .dot.solid::before { background:currentColor; }
+  /* 蟑螂：斜线 */
+  .road-area .dot.slash::before {
+    background:none; border:none; width:80%; height:2px;
+    transform:rotate(-45deg); background:currentColor;
+  }
+  /* 和：在大路上画斜线（叠在前一个圆点上） */
+  .road-area .dot.tie-slash::after {
+    content:""; position:absolute; width:80%; height:2px; background:#10a956;
+    transform:rotate(-45deg);
+  }
+  /* 路型标签 */
+  .road-area .road-tag-cell {
+    position:absolute; bottom:2px; right:2px;
+    padding:2px 8px; background:#10a956; color:#fff; font-size:9px; border-radius:3px;
+    font-family:"Roboto", sans-serif; z-index:2;
+  }
 
+  /* Sammy 2026-04-27：补全 7 维度（总/庄/闲/和/庄对/闲对/幸运6），缩 gap 适配 390 宽，每标签色块化（H9 色值）*/
   .bottom-stats {
-    display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--panel-2); flex-shrink:0;
-    font-size:11px; color:var(--ink-2); border-top:1px solid var(--line);
+    display:flex; align-items:center; gap:4px; padding:6px 8px; background:var(--panel-2); flex-shrink:0;
+    font-size:10px; color:#fff; border-top:1px solid var(--line);
+    white-space:nowrap;
   }
-  .bottom-stats b { color:var(--ink); }
-  .bottom-stats .ask { margin-left:auto; display:flex; gap:4px; }
+  .bottom-stats > .st {
+    display:inline-flex; align-items:center; padding:2px 6px; border-radius:3px;
+    flex-shrink:0; font-weight:500; gap:3px; font-size:9px; line-height:1.4;
+  }
+  .bottom-stats > .st b { color:#fff; font-weight:600; font-size:11px; }
+  .bottom-stats .st-total  { background:#da8400; }
+  .bottom-stats .st-banker { background:#ff1921; }
+  .bottom-stats .st-player { background:#0083ff; }
+  .bottom-stats .st-tie    { background:#00c500; }
+  .bottom-stats .st-bpair  { background:#ff4646; }
+  .bottom-stats .st-ppair  { background:#0096ff; }
+  .bottom-stats .st-lucky6 { background:#ff6619; }
+  .bottom-stats .ask { margin-left:auto; display:flex; gap:4px; flex-shrink:0; }
   .bottom-stats .ask .a {
-    padding:3px 10px; border-radius:12px; font-size:10px; cursor:pointer;
+    padding:3px 8px; border-radius:10px; font-size:10px; cursor:pointer;
   }
   .bottom-stats .ask .ab { background:var(--red); color:#fff; }
   .bottom-stats .ask .ap { background:var(--blue); color:#fff; }
@@ -1105,6 +1210,84 @@
   .side-drawer .sd-item.current { background:rgba(201,162,78,.1); border-left:3px solid var(--gold); }
   .side-drawer .sd-item .sd-t { color:#fff; font-size:13px; font-weight:500; margin-bottom:2px; }
   .side-drawer .sd-item .sd-s { color:var(--ink-2); font-size:10px; }
+
+  /* B3 切桌抽屉新版（Sammy 2026-04-27）*/
+  #drawer-switch { width:80%; right:-80%; }
+  #drawer-switch.open { right:0; }
+  .sw-hdr {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 12px; gap:8px;
+    border-bottom:1px solid var(--line); background:var(--panel);
+  }
+  .sw-pins { display:flex; gap:14px; }
+  .sw-pin { font-size:13px; color:var(--ink-2); cursor:pointer; }
+  .sw-pin.active { color:#fff; font-weight:600; }
+  .sw-pin em {
+    background:#3578f0; color:#fff; font-size:10px;
+    padding:1px 6px; border-radius:8px; margin-left:4px; font-style:normal;
+  }
+  .sw-view {
+    display:flex; background:var(--panel-2); border-radius:14px; padding:2px;
+  }
+  .sw-view .sv {
+    padding:4px 10px; font-size:11px; color:var(--ink-2); cursor:pointer; border-radius:12px;
+  }
+  .sw-view .sv.active { background:var(--gold); color:#000; font-weight:600; }
+  .sw-body { padding:8px; background:#0a0d12; }
+  .sw-list { display:flex; flex-direction:column; gap:8px; }
+  .sw-card {
+    min-height:auto !important;
+    padding:8px !important;
+  }
+  .sw-card.current { box-shadow:0 0 0 2px var(--gold); }
+  .sw-card .thdr {
+    display:flex; align-items:center; gap:4px; flex-wrap:wrap;
+    padding:0 0 6px; font-size:10px;
+  }
+  .sw-card .thdr .stat-pill {
+    padding:1px 5px; border-radius:3px; color:#fff; font-size:9px; font-weight:500;
+  }
+  .sw-card .thdr .stat-pill.st-total  { background:#da8400; }
+  .sw-card .thdr .stat-pill.st-banker { background:#ff1921; }
+  .sw-card .thdr .stat-pill.st-player { background:#0083ff; }
+  .sw-card .thdr .stat-pill.st-tie    { background:#00c500; }
+  .sw-card .sw-road {
+    height:60px; background:rgba(255,255,255,.04); border-radius:3px;
+    position:relative; padding:8px;
+  }
+  .sw-card .sw-road .rd-pill {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    padding:4px 14px; border-radius:14px; font-size:13px; color:#fff; font-weight:500;
+  }
+  .sw-card .sw-road .rd-pill.rd-blue { background:rgba(79,138,246,.64); border:1px solid #4f8af6; }
+  .sw-card .sw-road .rd-pill.rd-red  { background:rgba(237,88,88,.64); border:1px solid #ef5757; }
+  .sw-card .sw-road .rd-tag {
+    position:absolute; bottom:4px; right:4px;
+    padding:2px 8px; background:#00c500; color:#fff; font-size:9px; border-radius:3px;
+    font-family:"Roboto", sans-serif;
+  }
+
+  /* 极简模式：2 列 grid + 卡片紧凑（隐藏 7 维度统计 + 限红，保留 logo+桌号+倒计时+路图） */
+  .sw-list.simple { display:grid !important; grid-template-columns:1fr 1fr; gap:8px; }
+  .sw-list.simple .sw-card .stat-pill,
+  .sw-list.simple .sw-card .limit { display:none; }
+  .sw-list.simple .sw-card .thdr { font-size:9px; gap:3px; }
+  .sw-list.simple .sw-card .thdr .tlabel { font-size:9px; }
+  .sw-list.simple .sw-card .sw-road { height:80px; }
+
+  /* 当前桌"您在此桌"灰蒙版 */
+  .sw-road.sw-current-mask { background:rgba(150,150,150,.18); }
+  .sw-road.sw-current-mask .here-tip {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    color:#fff; font-size:14px; font-weight:500; text-shadow:0 1px 2px rgba(0,0,0,.5);
+  }
+  .sw-card.current { box-shadow:0 0 0 2px var(--gold); opacity:.85; }
+  .sw-vip-foot {
+    position:sticky; bottom:0;
+    height:30px; background:#000; color:#fff; font-size:11px;
+    display:flex; align-items:center; justify-content:center; gap:4px;
+    border-top:1px solid var(--line); margin:8px -8px -8px;
+  }
 
   /* B7 好路侧拉卡片 */
   .luck-list { display:flex; flex-direction:column; padding:0 10px; gap:10px; }
@@ -1550,8 +1733,22 @@
   }
   .demo-bar button:hover { background:var(--line); }
   /* 收起路图状态：M4 单桌 */
-  body.bet-collapsed .bet-area { flex:0 0 260px; }  /* 下注区固定 */
+  /* Sammy 2026-04-27 Q15 + 截图反馈：收起路图时**只拉伸下注区**（视频区保持 215 不动）、路图/7 维度统计隐藏 */
+  body.bet-collapsed .bet-area {
+    flex:1 1 auto;  /* 下注区抢余下空间 */
+  }
+  /* 关键：上排 + 下排 cells 也跟着拉伸（不再固定 90px）
+     .row-top 包在 .bet-page > .bet-swipe 里，中间层也要 flex 才能传递拉伸 */
+  body.bet-collapsed .bet-swipe { flex:1 1 0; display:flex; flex-direction:column; }
+  body.bet-collapsed .bet-page.active { flex:1 1 0; display:flex; flex-direction:column; }
+  body.bet-collapsed .bet-row.row-top,
+  body.bet-collapsed .bet-row.row-main {
+    flex:1 1 0; height:auto; min-height:0;  /* 完全放开，让 cells 充分拉伸填满 */
+  }
   body.bet-collapsed .road-area { display:none; }
+  body.bet-collapsed .bottom-stats { display:none; }
+  /* 收起态 ▼ 旋转 180 → ▲（暗示"展开"）*/
+  body.bet-collapsed .data-row .wl-toggle { transform:rotate(180deg); }
 
   /* ===== Figma 对照面板（和原型同宽 390，方便 1:1 对照）===== */
   .figma-panel {
@@ -1938,7 +2135,7 @@
       <span class="bal">🪙 45,108,957</span>
       <span class="ic" title="游戏记录" onclick="openDrawer('record')">📋</span>
       <span class="ic" title="系统设置" onclick="openDrawer('settings')">⚙</span>
-      <span class="anno" style="top:38px; right:10px;">C1 Header · U4 三件套</span>
+      <span class="anno" style="top:38px; right:10px;">C1 Header · U4 两件套（⭐ + STAR VIP GAME）</span>
     </div>
 
     <div class="marquee">
@@ -2238,6 +2435,7 @@
            当前演示桌 ON02 属 Newport；图片是占位 — 最终需 UI 出"桌信息栏专用 logo"集合（非 figma/tabs/） -->
       <div class="dinfo-logo">
         <img id="dinfo-logo-img" src="figma/tabs/tab-newport.png" alt="Newport（占位 — 待 UI 出桌信息栏专用 logo）" />
+        <span class="anno" style="top:-16px; left:50%; transform:translateX(-50%); white-space:nowrap;">B18 场馆 logo · 待 UI 出</span>
       </div>
       <!-- 限红显示（Sammy 2026-04-27 替换 popover 为完整桌台限红 dialog 4 行 2 列）-->
       <span class="limit" onclick="openDialog('table-limit')">🪙 20-100K ▾</span>
@@ -2333,54 +2531,69 @@
          · 重复 / 确认（第 3 个按钮动态切换）：
            - 确认式（bet_model=2）：默认"重复"；玩家点筹码下注或点"重复"触发待确认态 → 切"确认"；点"确认"完成 → 切回"重复"
            - 点击式（bet_model=1）：始终"重复"（点即下注成功，无需"确认"） -->
-    <div class="ops">
-      <button onclick="onCancelBet()" data-i18n="cancel" data-i18n-prefix="⊘ ">⊘ 取消</button>
-      <button onclick="onRevokeBet()" data-i18n="revoke" data-i18n-prefix="↶ ">↶ 撤注</button>
-      <button id="ops-main" onclick="onMainBtn()">↻ 重复</button>
+    <!-- 操作栏 3 按钮（B11.4 状态机）：取消（未达限红清未下筹码）/ 撤注（已成功下注撤回）/ 第 3 按钮 重复↔确认动态切换 -->
+    <div class="ops" style="position:relative;">
+      <button class="cancel" onclick="onCancelBet()"><span class="ic-circle">✕</span><span data-i18n="cancel">取消</span></button>
+      <button class="revoke" onclick="onRevokeBet()"><span class="ic-circle">⏎</span><span data-i18n="revoke">撤注</span></button>
+      <button class="ok" id="ops-main" onclick="onMainBtn()"><span class="ic-circle">✓</span><span>确定</span></button>
+      <span class="anno" style="top:-12px; right:8px;">B11.4 重复↔确认 状态机</span>
     </div>
 
-    <!-- 筹码栏（Sammy 截图数值：500/1K/5K(active)/10K/20K + 💡好路 + ⚙设置筹码） -->
+    <!-- 筹码栏（Figma node 12185:194646：左 ⚙ + 中 5 颗筹码可滑 + 右 💡 + 红角标） -->
     <div class="chip-bar">
       <div class="chip-set" title="C7 设置 / 自定义筹码" onclick="openDialog('chip')">⚙</div>
-      <div class="chip purple" onclick="pickChip(this)">500</div>
-      <div class="chip" onclick="pickChip(this)">1,000</div>
-      <div class="chip red active" onclick="pickChip(this)">5,000</div>
-      <div class="chip" onclick="pickChip(this)">10,000</div>
-      <div class="chip blue" onclick="pickChip(this)">20,000</div>
+      <div class="chips-mid" id="chips-mid">
+        <div class="chip" onclick="pickChip(this)">500</div>
+        <div class="chip" onclick="pickChip(this)">1,000</div>
+        <div class="chip active" onclick="pickChip(this)">5,000</div>
+        <div class="chip" onclick="pickChip(this)">10,000</div>
+        <div class="chip" onclick="pickChip(this)">20,000</div>
+      </div>
       <div class="chip-luck" title="B7 好路侧拉" onclick="openSideDrawer('luck')">💡<span class="luck-num">20</span></div>
     </div>
 
     <!-- 筹码栏下方 · · · · 页码指示器（4 档筹码集） -->
     <div class="chip-pager"><i></i><i class="on"></i><i></i><i></i></div>
 
-    <!-- Balance / Bet / Win/Lose 三栏统计（右侧带 🔽 展开箭头） -->
-    <div class="data-row">
+    <!-- Balance / Bet / Win/Lose 三栏统计（Sammy 2026-04-27 修订：Balance/Bet 后无功能不放 ⟳；
+         右侧 ▼ 唯一功能 = 收起整个路图区，上方下注台自动占位扩展（Q15 betCollapsed toggle） -->
+    <div class="data-row" style="position:relative;">
       <span class="stat"><label>Balance</label><b>20.00005M</b></span>
       <span class="stat mid"><label>Bet</label><b>0</b></span>
       <span class="stat"><label>Win/Lose</label><b class="win">+20.00005M</b></span>
-      <span class="wl-toggle">▼</span>
+      <span class="wl-toggle" title="收起 / 展开路图" onclick="toggleBetCollapse()">▼</span>
+      <span class="anno" style="top:-12px; right:8px;">Q15 ▼ 收起路图 toggle</span>
     </div>
 
+    <!-- B14 路图：5 路完整（珠盘 / 大路 / 大眼仔 / 小路 / 蟑螂），JS 生成 -->
     <div class="road-area">
-      <div class="pearl">
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      </div>
-      <div class="bigroad">
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <span class="anno" style="top:2px; left:50%; transform:translateX(-50%); z-index:3;">B14 完整 5 路（珠盘/大路/大眼仔/小路/蟑螂）</span>
+      <div class="pearl" id="road-pearl"></div>
+      <div class="right-roads">
+        <div class="bigroad" id="road-big"></div>
+        <div class="below-roads">
+          <div class="bigeye" id="road-bigeye"></div>
+          <div class="smallrd" id="road-small"></div>
+          <div class="cockroach" id="road-cock"></div>
+        </div>
       </div>
     </div>
 
+    <!-- B14 底部 7 维度统计 + 问路（Sammy 2026-04-27 截图：总/庄/闲/和/庄对/闲对/幸运6 + 庄问路/闲问路；
+         每个数字标签按 H9 色值色块化：局/总 #da8400 · 庄 #ff1921 · 闲 #0083ff · 和 #00c500 · 庄对 #ff4646 · 闲对 #0096ff · 幸运6 #ff6619）-->
     <div class="bottom-stats">
-      <span>总 <b>128</b></span>
-      <span>庄 <b>42</b></span>
-      <span>闲 <b>38</b></span>
-      <span>和 <b>12</b></span>
-      <span>对 <b>8</b></span>
+      <span class="st st-total">总<b>128</b></span>
+      <span class="st st-banker">庄<b>42</b></span>
+      <span class="st st-player">闲<b>38</b></span>
+      <span class="st st-tie">和<b>12</b></span>
+      <span class="st st-bpair">庄对<b>5</b></span>
+      <span class="st st-ppair">闲对<b>3</b></span>
+      <span class="st st-lucky6">幸运6<b>2</b></span>
       <div class="ask">
         <span class="a ab">庄问路</span>
         <span class="a ap">闲问路</span>
       </div>
-      <span class="anno" style="bottom:30px; right:10px;">B14 底部横排</span>
+      <span class="anno" style="bottom:30px; right:10px;">B14 底部横排 7 维度</span>
     </div>
   </div>
 
@@ -2532,36 +2745,54 @@
   </div>
 
   <!-- ============ B3 切桌抽屉（从右侧侧拉覆盖视频区）============ -->
+  <!-- B3 切桌抽屉（Sammy 2026-04-27 截图：顶部置顶 Tab + 全路/极简切换 + 完整桌台卡列表 + 底部 VIP）-->
   <div class="side-drawer" id="drawer-switch">
-    <div class="sd-hdr">
-      <h3>切换桌台</h3>
-      <span class="close" onclick="closeAll()">✕</span>
+    <div class="sw-hdr">
+      <div class="sw-pins">
+        <span class="sw-pin active">好路 <em>99</em></span>
+        <span class="sw-pin">投注置顶</span>
+      </div>
+      <div class="sw-view">
+        <span class="sv active" onclick="swSetView(this, 'full')">全路</span>
+        <span class="sv" onclick="swSetView(this, 'simple')">极简</span>
+      </div>
     </div>
-    <div class="sd-body">
-      <div class="sd-tab-row">
-        <span class="sd-tab active">全部</span>
-        <span class="sd-tab">Newport</span>
-        <span class="sd-tab">ONEKEY</span>
-        <span class="sd-tab">Solaire</span>
+    <div class="sd-body sw-body">
+      <div class="sw-list" id="sw-list">
+        <div class="tcard sw-card" onclick="closeAll()">
+          <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 70</span><span class="tnum">0</span><span class="stat-pill st-total">局 30</span><span class="stat-pill st-banker">庄 30</span><span class="stat-pill st-player">闲 30</span><span class="stat-pill st-tie">和 30</span><span class="limit range">0.05-50K</span></div>
+          <div class="sw-road"><span class="rd-pill rd-blue">开牌中</span><span class="rd-tag">Player Never Sticks</span></div>
+        </div>
+        <div class="tcard sw-card" onclick="closeAll()">
+          <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 71</span><span class="tnum">0</span><span class="stat-pill st-total">局 30</span><span class="stat-pill st-banker">庄 30</span><span class="stat-pill st-player">闲 30</span><span class="stat-pill st-tie">和 30</span><span class="limit range">0.05-50K</span></div>
+          <div class="sw-road"><span class="rd-pill rd-red">洗牌中</span><span class="rd-tag">Player Never Sticks</span></div>
+        </div>
+        <div class="tcard sw-card" onclick="closeAll()">
+          <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 72</span><span class="tnum">0</span><span class="stat-pill st-total">局 30</span><span class="stat-pill st-banker">庄 30</span><span class="stat-pill st-player">闲 30</span><span class="stat-pill st-tie">和 30</span><span class="limit range">0.05-50K</span></div>
+          <div class="sw-road"><span class="rd-pill rd-blue">开牌中</span><span class="rd-tag">Player Never Sticks</span></div>
+        </div>
+        <div class="tcard sw-card" onclick="closeAll()">
+          <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 73</span><span class="tnum">0</span><span class="stat-pill st-total">局 30</span><span class="stat-pill st-banker">庄 30</span><span class="stat-pill st-player">闲 30</span><span class="stat-pill st-tie">和 30</span><span class="limit range">0.05-50K</span></div>
+          <div class="sw-road"><span class="rd-pill rd-red">洗牌中</span><span class="rd-tag">Player Never Sticks</span></div>
+        </div>
+        <div class="tcard sw-card" onclick="closeAll()">
+          <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 74</span><span class="tnum">0</span><span class="stat-pill st-total">局 30</span><span class="stat-pill st-banker">庄 30</span><span class="stat-pill st-player">闲 30</span><span class="stat-pill st-tie">和 30</span><span class="limit range">0.05-50K</span></div>
+          <div class="sw-road"><span class="rd-pill rd-blue">开牌中</span><span class="rd-tag">Player Never Sticks</span></div>
+        </div>
+        <div class="tcard sw-card" onclick="closeAll()">
+          <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 75</span><span class="tnum">0</span><span class="stat-pill st-total">局 30</span><span class="stat-pill st-banker">庄 30</span><span class="stat-pill st-player">闲 30</span><span class="stat-pill st-tie">和 30</span><span class="limit range">0.05-50K</span></div>
+          <div class="sw-road"><span class="rd-pill rd-blue">开牌中</span><span class="rd-tag">Player Never Sticks</span></div>
+        </div>
+        <div class="tcard sw-card current" onclick="closeAll()">
+          <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 77</span><span class="tnum">0</span><span class="stat-pill st-total">局 30</span><span class="stat-pill st-banker">庄 30</span><span class="stat-pill st-player">闲 30</span><span class="stat-pill st-tie">和 30</span><span class="limit range">0.05-50K</span></div>
+          <div class="sw-road sw-current-mask"><span class="here-tip">您在此桌</span><span class="rd-tag">Player Never Sticks</span></div>
+        </div>
+        <div class="tcard sw-card" onclick="closeAll()">
+          <div class="thdr"><span class="club-logo">OK</span><span class="tlabel">快速桌台 78</span><span class="tnum">0</span><span class="stat-pill st-total">局 30</span><span class="stat-pill st-banker">庄 30</span><span class="stat-pill st-player">闲 30</span><span class="stat-pill st-tie">和 30</span><span class="limit range">0.05-50K</span></div>
+          <div class="sw-road"><span class="rd-pill rd-blue">开牌中</span><span class="rd-tag">Player Never Sticks</span></div>
+        </div>
       </div>
-      <div class="sd-list">
-        <div class="sd-item" onclick="closeAll()">
-          <div class="sd-t">快速桌 70 · Newport</div>
-          <div class="sd-s">0.05-50K · 18 人在玩</div>
-        </div>
-        <div class="sd-item current" onclick="closeAll()">
-          <div class="sd-t">快速桌 71 · ONEKEY（当前）</div>
-          <div class="sd-s">0.05-50K · 23 人</div>
-        </div>
-        <div class="sd-item" onclick="closeAll()">
-          <div class="sd-t">快速桌 72 · CAGAYAN</div>
-          <div class="sd-s">0.1-100K · 9 人</div>
-        </div>
-        <div class="sd-item" onclick="closeAll()">
-          <div class="sd-t">快速桌 73 · Solaire</div>
-          <div class="sd-s">无限红 · 30 人</div>
-        </div>
-      </div>
+      <div class="sw-vip-foot">🔒 VIP</div>
     </div>
   </div>
 
@@ -2847,9 +3078,8 @@
         <div class="mi" onclick="openDialog('chip')">
           <span class="mic">🎲</span><span class="ml" data-i18n="chip-settings">筹码设置</span><span class="mr">›</span>
         </div>
-        <div class="mi" onclick="openDialog('video')">
-          <span class="mic">📹</span><span class="ml" data-i18n="video-settings">视频源设置</span><span class="mr">›</span>
-        </div>
+        <!-- 视频源设置入口已删（Sammy 2026-04-27 Q26：只影响当前桌台，仅在 M4 单桌视频区右侧 📺 icon 打开；
+             dlg-video 弹窗本身保留，从 M4 视频区触发） -->
         <div class="mi" onclick="openDialog('music')">
           <span class="mic">🎵</span><span class="ml" data-i18n="music-settings">音乐设置</span><span class="mr">›</span>
         </div>
@@ -2868,7 +3098,7 @@
         </div>
         <!-- 选择投注模式 已删（B9 下注区翻页已替代，Sammy 2026-04-24） -->
         <!-- 用户信息 / 教程 已删（Sammy 2026-04-24 决策） -->
-        <div class="mi danger" onclick="nav('login')">
+        <div class="mi danger" onclick="openExitConfirm()">
           <span class="mic">🚪</span><span class="ml" data-i18n="logout">退出游戏</span><span class="mr"></span>
         </div>
       </div>
@@ -3110,6 +3340,19 @@
     </div>
   </div>
 
+  <!-- ============ 退出游戏确认弹窗（沿用现状 Header/index.tsx L251-269 logout 函数）============ -->
+  <!-- i18n exitGame:title "退出游戏" / exitGame:exitGameLabel "是否退出游戏?" / common:buttonCancel "取消" / common:buttonConfirm "确认" -->
+  <div class="center-dialog" id="exit-confirm-dialog">
+    <div class="cdbox">
+      <div class="cdhdr">退出游戏</div>
+      <div class="cdbody">是否退出游戏?</div>
+      <div class="cdfoot">
+        <button onclick="closeExitConfirm()">取消</button>
+        <button class="primary" onclick="confirmExit()">确认</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ 桌台限红弹窗（Sammy 2026-04-27 截图）============ -->
   <!-- 现状代码 components/common/selectPicker.tsx + table.tsx L486-509 弹"桌台限红"，4 列（注区/您的限红/桌台限红/可下注区间）
        Sammy 截图改为简化 2 列（注区/可下注区间），4 行：庄/闲、和、对子、幸运6
@@ -3152,6 +3395,10 @@
     updateFigmaPanel(name);
     // Sammy 2026-04-27：标记当前 page 用于演示控件 fixed 定位的显隐
     document.body.setAttribute('data-page', name);
+    // 进 bet 页时主动渲染路图（避免 DOMContentLoaded 时机过早 / page 未 active）
+    if (name === 'bet' && typeof renderAllRoads === 'function') {
+      requestAnimationFrame(() => renderAllRoads());
+    }
   }
 
   // ===== M2 Plan 页交互（沿用现状 views/plan/index.tsx 逻辑）=====
@@ -3864,6 +4111,172 @@
     // 未来：dispatch 保存 mode / lineIndex 到 Redux
   }
 
+  // ===== B14 路图 5 路算法（珠盘 / 大路 / 大眼仔 / 小路 / 蟑螂）=====
+  // 数据源：history 字符串 'B'=庄 'P'=闲 'T'=和。简化对子和 Lucky6 不画
+  const ROAD_HISTORY = 'BBPBPBPPBBPBPTPBBPPBPPBBPBPBPPBBPPPBPBBPPBPBPBBPP';
+
+  // 大路：同色纵向叠（最多 6 行），换色横移；和（T）在前一个圆点上画斜线
+  function buildBigroad(history) {
+    const grid = []; // [{ col, row, type, ties }]
+    let lastCol = -1, lastRow = -1, prev = null;
+    const colHeights = []; // 每列已用行数（处理水平延伸）
+    for (const r of history) {
+      if (r === 'T') {
+        if (grid.length > 0) grid[grid.length - 1].ties = (grid[grid.length - 1].ties || 0) + 1;
+        continue;
+      }
+      let col, row;
+      if (prev === r) {
+        // 同色延伸：往下叠
+        row = lastRow + 1;
+        col = lastCol;
+        // 超过 6 行：水平向右
+        if (row > 5) { col = lastCol + 1; row = lastRow; }
+        // 如果右侧已有圆点（被前列占）：再向右
+        while ((colHeights[col] || 0) > row && col !== lastCol + 1) col++;
+      } else {
+        // 换色：移到下一列第 0 行
+        col = (prev === null) ? 0 : lastCol + 1;
+        row = 0;
+      }
+      grid.push({ col, row, type: r === 'B' ? 'banker' : 'player' });
+      colHeights[col] = Math.max(colHeights[col] || 0, row + 1);
+      lastCol = col; lastRow = row; prev = r;
+    }
+    return grid;
+  }
+
+  // 衍生路（大眼仔/小路/蟑螂）从大路推导
+  // offset: 1 大眼仔，2 小路，3 蟑螂
+  function buildDerived(bigroadGrid, offset) {
+    // 重组大路成 col 索引的二维数组
+    const big = [];
+    for (const p of bigroadGrid) {
+      if (!big[p.col]) big[p.col] = [];
+      big[p.col][p.row] = p.type;
+    }
+    const result = []; // 红=齐整, 蓝=不齐整
+    let outLastCol = -1, outLastRow = -1, outPrev = null;
+    const outColH = [];
+    // 遍历大路（按 col, row）从 col=offset 起
+    for (let c = 1; c < big.length; c++) {
+      const len = (big[c] || []).length;
+      for (let r = 0; r < len; r++) {
+        // 起点判断：跳过 (offset, 0)
+        if (c < offset) continue;
+        if (c === offset && r === 0) continue;
+        let isRed; // 红=齐整
+        if (r === 0) {
+          // 新列第 0 行：比 (c-offset, 0) 列长度 vs (c-offset-1, 0) 列长度
+          const a = (big[c - offset] || []).length;
+          const b = (big[c - offset - 1] || []).length;
+          isRed = (a === b);
+        } else {
+          // 中间行：比 (c-offset, r) 是否非空
+          const target = (big[c - offset] || [])[r];
+          isRed = !!target;
+        }
+        const color = isRed ? 'banker' : 'player';
+        // 同色延伸/换色横移，独立网格
+        let col, row;
+        if (outPrev === color) {
+          row = outLastRow + 1;
+          col = outLastCol;
+          if (row > 5) { col = outLastCol + 1; row = outLastRow; }
+          while ((outColH[col] || 0) > row && col !== outLastCol + 1) col++;
+        } else {
+          col = (outPrev === null) ? 0 : outLastCol + 1;
+          row = 0;
+        }
+        result.push({ col, row, type: color });
+        outColH[col] = Math.max(outColH[col] || 0, row + 1);
+        outLastCol = col; outLastRow = row; outPrev = color;
+      }
+    }
+    return result;
+  }
+
+  // 渲染圆点到 grid 容器
+  function renderRoad(elId, points, mode) {
+    // mode: 'hollow' (大路/大眼仔), 'solid' (小路/珠盘), 'slash' (蟑螂)
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = '';
+    const cols = parseInt(getComputedStyle(el).getPropertyValue('--cols')) || 30;
+    for (const p of points) {
+      if (p.col >= cols) continue; // 超出可视范围
+      const dot = document.createElement('div');
+      dot.className = `dot ${p.type}` + (mode === 'solid' ? ' solid' : '') + (mode === 'slash' ? ' slash' : '');
+      dot.style.left = `calc(100% / ${cols} * ${p.col})`;
+      dot.style.top = `calc(100% / 6 * ${p.row})`;
+      if (p.ties) dot.classList.add('tie-slash');
+      el.appendChild(dot);
+    }
+  }
+
+  // 珠盘路：6 行展开（按列从上到下）
+  function renderPearl(history) {
+    const el = document.getElementById('road-pearl');
+    if (!el) return;
+    el.innerHTML = '';
+    const cols = parseInt(getComputedStyle(el).getPropertyValue('--cols')) || 6;
+    for (let i = 0; i < history.length; i++) {
+      const r = history[i];
+      const col = Math.floor(i / 6);
+      const row = i % 6;
+      if (col >= cols) break;
+      const dot = document.createElement('div');
+      const type = r === 'B' ? 'banker' : r === 'P' ? 'player' : 'tie';
+      dot.className = `dot ${type} solid`;
+      dot.style.left = `calc(100% / ${cols} * ${col})`;
+      dot.style.top = `calc(100% / 6 * ${row})`;
+      // 内嵌字
+      dot.innerHTML = '';
+      el.appendChild(dot);
+    }
+  }
+
+  function renderAllRoads() {
+    if (!document.getElementById('road-pearl')) return;
+    renderPearl(ROAD_HISTORY);
+    const big = buildBigroad(ROAD_HISTORY);
+    renderRoad('road-big', big, 'hollow');
+    renderRoad('road-bigeye', buildDerived(big, 1), 'hollow');
+    renderRoad('road-small', buildDerived(big, 2), 'solid');
+    renderRoad('road-cock', buildDerived(big, 3), 'slash');
+    // 路型标签贴大路右下
+    const big2 = document.getElementById('road-big');
+    if (big2 && !big2.querySelector('.road-tag-cell')) {
+      const tag = document.createElement('span');
+      tag.className = 'road-tag-cell';
+      tag.textContent = 'Player Never Sticks';
+      big2.appendChild(tag);
+    }
+  }
+  document.addEventListener('DOMContentLoaded', () => setTimeout(renderAllRoads, 150));
+
+  // B3 切桌抽屉视图切换（全路 / 极简）
+  function swSetView(el, mode) {
+    const container = el.parentElement;
+    container.querySelectorAll('.sv').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    const list = document.getElementById('sw-list');
+    if (list) list.classList.toggle('simple', mode === 'simple');
+  }
+
+  // 退出游戏确认（沿用现状 Header/index.tsx L251-269 logout：dialog title/message/取消/确认 → dispatch(userLogout)）
+  function openExitConfirm() {
+    document.getElementById('exit-confirm-dialog').classList.add('open');
+  }
+  function closeExitConfirm() {
+    document.getElementById('exit-confirm-dialog').classList.remove('open');
+  }
+  function confirmExit() {
+    closeExitConfirm();
+    closeAll();  // 关掉系统设置抽屉
+    nav('login');  // 现状代码 dispatch(userLogout) 后跳登录
+  }
+
   // C8.1 自动缩放（Sammy 2026-04-23/27）：
   // on 时给 .bet-video 加 .auto-zoom-active 触发 CSS keyframes 周期演示；off 时移除 + 清掉 zoomed
   // 实施时改为订阅 stop_bet_at / DeskStatusChange 事件，不依赖 keyframes 定时器
@@ -3911,7 +4324,8 @@
   //   hasPendingBet：有待确认的投注（只在 confirm-mode 有意义；触发"确认"按钮）
   //   hasPlacedBet：已成功下注（满足限红，无论哪种模式；允许撤注）
   //   underLimit：投注未满足最低限红（出现"取消"按钮）
-  let hasPendingBet = false;
+  // Sammy 2026-04-27：默认演示"已选筹码待确认"状态（按钮显示金色"确定"，跟 UI 稿一致）
+  let hasPendingBet = true;
   let hasPlacedBet = false;
   let underLimit = false;
 
@@ -3920,9 +4334,10 @@
     if (!btn) return;
     const isConfirm = document.body.classList.contains('confirm-mode');
     const showConfirm = isConfirm && hasPendingBet;
-    btn.dataset.i18n = showConfirm ? 'confirm' : 'repeat';
-    btn.dataset.i18nPrefix = showConfirm ? '✓ ' : '↻ ';
-    btn.textContent = (showConfirm ? '✓ ' : '↻ ') + getLangText(btn.dataset.i18n);
+    // 保留 ic-circle + 文本 span 两段结构（Sammy 2026-04-27 对齐 UI 稿）
+    const icon = showConfirm ? '✓' : '↻';
+    const key = showConfirm ? 'confirm' : 'repeat';
+    btn.innerHTML = `<span class="ic-circle">${icon}</span><span data-i18n="${key}">${getLangText(key)}</span>`;
     btn.className = showConfirm ? 'ok' : '';
   }
 
