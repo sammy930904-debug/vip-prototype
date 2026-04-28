@@ -260,15 +260,55 @@
   .luck-card .name { font-size:10px; color:var(--ink-2); }
   .luck-card .tag { font-size:9px; color:var(--gold); text-align:right; }
 
-  /* 全路模式 1 列（Figma table_default 374 宽）；极简 2 列（table_simple 182 宽）*/
+  /* H4.1 首页整页滚动容器（Sammy 2026-04-28 二次澄清：banner+好路+Tab+sort+列表 一起滚动）
+     方案：① #page-hall.active 直接 overflow-y:auto（覆盖默认 .page 的 overflow:hidden）
+            ② hdr + marquee 用 position:sticky 钉在顶部不滚走
+            ③ .hall-scroll 是普通流（不需要自己滚），承载 banner+好路+Tab+sort+list */
+  #page-hall.active { display: block; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior: contain;
+  }
+  #page-hall::-webkit-scrollbar { width: 4px; }
+  #page-hall::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+  #page-hall .hdr,
+  #page-hall .marquee {
+    position: sticky; top: 0; z-index: 5;
+  }
+  #page-hall .marquee { top: 46px; }  /* hdr 高度之下 */
+  #page-hall .hall-scroll { /* 不需要自己滚，做普通块容器即可 */
+    display: block;
+  }
+  /* 收起态（向下滚 50px 触发）：banner + lucky-roads 折叠 */
+  #page-hall .banner,
+  #page-hall .lucky-roads {
+    transition: max-height .3s ease, opacity .25s ease, margin .3s ease, padding .3s ease;
+    max-height: 220px; overflow: hidden; flex-shrink: 0;
+  }
+  #page-hall.collapsed .banner,
+  #page-hall.collapsed .lucky-roads {
+    max-height: 0; opacity: 0; margin-top: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0;
+  }
+  /* 回到顶部 浮动按钮（Sammy 2026-04-28 决策）—— 滑过 200px 后出现 */
+  .back-to-top {
+    position: absolute; right: 12px; bottom: 16px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(0,0,0,.7); border: 1px solid var(--gold);
+    color: var(--gold); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50; opacity: 0; transform: translateY(20px) scale(.85); pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    backdrop-filter: blur(4px);
+  }
+  .back-to-top.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  .back-to-top:active { transform: translateY(0) scale(.92); }
+
+  /* 全路模式 1 列（Figma table_default 374 宽）；极简 2 列（table_simple 182 宽）
+     ⚠️ 2026-04-28：滚动权交给 .hall-scroll，table-grid 改自然流（不再 flex:1 + overflow:auto）*/
   .table-grid {
-    flex:1; overflow-y:auto; padding:0 8px 12px; display:grid; grid-template-columns:1fr; gap:10px;
+    flex-shrink: 0; padding:0 8px 12px; display:grid; grid-template-columns:1fr; gap:10px;
   }
   body.simple .table-grid {
     grid-template-columns:1fr 1fr; gap:10px;
   }
-  .table-grid::-webkit-scrollbar { width:4px; }
-  .table-grid::-webkit-scrollbar-thumb { background:var(--line); border-radius:2px; }
 
   /* 桌台卡 header（Figma Dev Mode 2026-04-24 node 11903:144517）
      字段顺序（Sammy 2026-04-24 校正）：赌场名 → 桌台号 → 倒计时秒数 → 限红 */
@@ -2420,6 +2460,9 @@
       <span class="anno" style="top:70px; left:10px;">H14 · U3 VIP 客户</span>
     </div>
 
+    <!-- H4.1 整页滚动容器（Sammy 2026-04-28）：banner+好路+Tab+sort+列表 一起滚动，顺带支持收起 -->
+    <div class="hall-scroll" id="hall-scroll">
+
     <!-- H3 Banner：图片跟随赌厅 Tab 切换（非自动轮播）。Sammy 2026-04-24 -->
     <div class="banner" id="banner">
       <img id="banner-img" src="figma/banners/banner-all.png" alt="Banner" onerror="this.classList.add('hide')">
@@ -2625,6 +2668,8 @@
       </div>
     </div>
 
+    </div><!-- /.hall-scroll -->
+
     <!-- 包桌密码弹框（对齐现状 ReserveTable 组件 + bet.slice setShowReserveTable） -->
     <div class="center-dialog" id="hall-vip-dialog">
       <div class="cdbox">
@@ -2672,6 +2717,9 @@
         </div>
       </div>
     </div>
+
+    <!-- H4.1 回到顶部 浮动按钮（Sammy 2026-04-28：滑过 200px 出现，点击回顶 + 展开收起区） -->
+    <button class="back-to-top" id="hall-back-top" onclick="hallBackToTop()" title="回到顶部">↑</button>
   </div>
 
   <!-- ============ M4 单桌 ============ -->
@@ -4701,6 +4749,46 @@
     }
   }
   document.addEventListener('DOMContentLoaded', () => setTimeout(renderAllRoads, 150));
+
+  // ===== H4.1 首页滚动收起 + 回到顶部（Sammy 2026-04-28 决策）=====
+  // 行为：① 下滑且 scrollTop>50 → #page-hall 加 .collapsed 类，banner+lucky-roads 折叠
+  //      ② 上滑（delta>5px）→ 移除 .collapsed，展开
+  //      ③ scrollTop>200 → 显示"回到顶部"按钮；点击平滑回顶 + 强制展开
+  //      实施按现状 home/index.tsx scroll 监听 + framer-motion / react-spring 做高度动画
+  (function bindHallScrollCollapse() {
+    let lastTop = 0;
+    let ticking = false;
+    function onScroll() {
+      const page = document.getElementById('page-hall');
+      const btn = document.getElementById('hall-back-top');
+      if (!page) return;
+      const top = page.scrollTop;
+      const delta = top - lastTop;
+      if (top > 50 && delta > 0) {
+        page.classList.add('collapsed');
+      } else if (delta < -5) {
+        page.classList.remove('collapsed');
+      }
+      if (top <= 10) page.classList.remove('collapsed');
+      if (btn) btn.classList.toggle('show', top > 200);
+      lastTop = top;
+      ticking = false;
+    }
+    function bind() {
+      const page = document.getElementById('page-hall');
+      if (!page) return;
+      page.addEventListener('scroll', () => {
+        if (!ticking) { requestAnimationFrame(onScroll); ticking = true; }
+      }, { passive: true });
+    }
+    if (document.getElementById('page-hall')) bind();
+    else document.addEventListener('DOMContentLoaded', bind);
+  })();
+  function hallBackToTop() {
+    const page = document.getElementById('page-hall');
+    if (page) page.scrollTo({ top: 0, behavior: 'smooth' });
+    if (page) page.classList.remove('collapsed');
+  }
 
   // ===== B7 好路投注 底部抽屉（Sammy 2026-04-28 截图，从筹码栏右 iron 触发）=====
   // 现状链路保留：luckRoads slice + RoadTipDrag + QuickBet 下注；UI 形态由原侧拉抽屉换为 70%/100% 底部抽屉
