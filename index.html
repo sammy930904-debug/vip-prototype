@@ -1102,90 +1102,47 @@
   .data-row .stat b { font-size:13px; color:#fff; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
   /* .refresh 已删（Sammy 2026-04-27：Balance/Bet 后无功能不放刷新 icon）*/
 
-  /* Sammy 2026-04-28 路图 5 路高保真还原（对齐对照截图）：
-     ① 珠盘：实心彩圆 + 庄/闲/和 白字
-     ② 大路：空心粗描边圆 + 内嵌和绿斜线 + 庄对(右上红)/闲对(左下蓝) 角点
-     ③ 大眼仔/小路：小空心 O / 小实心点
-     ④ 甴由路：小斜线
-     布局：上排 [珠盘 | 大路]，下排 [大眼仔 | 小路 | 甴由路] */
+  /* Sammy 2026-04-27：路图 5 路完整版（珠盘 / 大路 / 大眼仔 / 小路 / 蟑螂）*/
   .road-area {
-    flex:1 1 auto; min-height:200px; background:#fff; border-top:1px solid var(--line);
-    display:flex; flex-direction:column; padding:0; overflow:hidden;
+    flex:1 1 auto; min-height:120px; background:#fff; border-top:1px solid var(--line);
+    display:grid; grid-template-columns:80px 1fr; gap:1px; padding:0;
   }
-  .road-area .road-row { display:flex; flex:1; min-height:0; }
-  .road-area .road-row.top { flex:1.6; }
-  .road-area .road-row.bot { flex:1; border-top:1px solid rgba(0,0,0,.1); }
-  .road-cell {
-    background:#fff; position:relative; display:flex; flex-direction:column;
-    border-right:1px solid rgba(0,0,0,.08);
-    flex:1; min-width:0;
-  }
-  .road-cell:last-child { border-right:none; }
-  .road-cell.road-pearl-cell   { flex:1; }
-  .road-cell.road-bigroad-cell { flex:1.6; }
-  .road-cell .road-hdr {
-    display:flex; align-items:center; gap:6px; padding:3px 6px;
-    font-size:10px; color:#333; background:#f7f7f7;
-    border-bottom:1px solid rgba(0,0,0,.08);
-    flex-shrink:0;
-  }
-  .road-cell .rh-title { font-weight:700; color:#000; }
-  .road-cell .rh-sub { color:#888; font-size:9px; }
-  .road-cell .rh-legend { margin-left:auto; display:inline-flex; align-items:center; gap:3px; font-size:9px; color:#666; }
-  .road-cell .rh-legend i { display:inline-block; width:8px; height:8px; border-radius:50%; }
-  .road-cell .rh-legend i.lg-b { background:#e30013; }
-  .road-cell .rh-legend i.lg-p { background:#1167d6; }
-  .road-cell .rh-legend i.lg-t { background:#10a956; }
-  /* 路本体 grid 背景 */
   .pearl, .bigroad, .bigeye, .smallrd, .cockroach {
-    background:#fff; position:relative; flex:1; min-height:0; min-width:0;
+    background:#fff; position:relative;
     background-image:linear-gradient(to right, rgba(0,0,0,.08) 1px, transparent 1px),
                      linear-gradient(to bottom, rgba(0,0,0,.08) 1px, transparent 1px);
     background-size:calc(100%/var(--cols)) calc(100%/6);
   }
-  .pearl    { --cols:14; }
-  .bigroad  { --cols:24; }
-  .bigeye   { --cols:18; }
-  .smallrd  { --cols:18; }
-  .cockroach{ --cols:18; }
-  /* 通用圆点 */
+  .pearl    { --cols:6; }
+  .bigroad  { --cols:30; }
+  .bigeye   { --cols:25; }
+  .smallrd  { --cols:25; }
+  .cockroach{ --cols:25; }
+  .right-roads { display:grid; grid-template-rows:1fr 1fr; gap:1px; }
+  .below-roads { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:rgba(0,0,0,.1); }
+  /* 路图圆点（大路/珠盘）*/
   .road-area .dot {
     position:absolute; width:calc(100%/var(--cols)); height:calc(100%/6);
     display:flex; align-items:center; justify-content:center;
-    color:#fff; font-size:9px; font-weight:700; font-family:"PingFang SC", sans-serif;
+    font-size:8px; font-weight:600;
   }
-  .road-area .dot.banker { --c:#e30013; }
-  .road-area .dot.player { --c:#1167d6; }
-  .road-area .dot.tie    { --c:#10a956; }
-  /* 珠盘：实心 + 白字 */
-  .pearl .dot::before {
-    content:""; position:absolute; width:80%; height:80%; border-radius:50%;
-    background:var(--c);
+  .road-area .dot::before {
+    content:""; width:75%; height:75%; border-radius:50%;
+    border:1.5px solid currentColor;
   }
-  .pearl .dot .lbl { position:relative; z-index:1; color:#fff; font-size:9px; line-height:1; }
-  /* 大路：空心粗描边圆 */
-  .bigroad .dot::before {
-    content:""; position:absolute; width:78%; height:78%; border-radius:50%;
-    border:2px solid var(--c); background:transparent;
+  .road-area .dot.banker { color:#e30013; }
+  .road-area .dot.player { color:#1167d6; }
+  .road-area .dot.tie    { color:#10a956; }
+  /* 实心：珠盘/小路 */
+  .road-area .dot.solid::before { background:currentColor; }
+  /* 蟑螂：斜线 */
+  .road-area .dot.slash::before {
+    background:none; border:none; width:80%; height:2px;
+    transform:rotate(-45deg); background:currentColor;
   }
-  /* 大路 和叠加：内部小绿斜线 */
-  .bigroad .dot.tie-slash::after {
-    content:""; position:absolute; width:65%; height:2.5px; background:#10a956;
-    transform:rotate(-45deg); z-index:2;
-  }
-  /* 大眼仔：小空心 O */
-  .bigeye .dot::before {
-    content:""; position:absolute; width:62%; height:62%; border-radius:50%;
-    border:1.5px solid var(--c); background:transparent;
-  }
-  /* 小路：小实心点 */
-  .smallrd .dot::before {
-    content:""; position:absolute; width:55%; height:55%; border-radius:50%;
-    background:var(--c);
-  }
-  /* 甴由路：小斜线 */
-  .cockroach .dot::before {
-    content:""; position:absolute; width:65%; height:2.2px; background:var(--c);
+  /* 和：在大路上画斜线（叠在前一个圆点上） */
+  .road-area .dot.tie-slash::after {
+    content:""; position:absolute; width:80%; height:2px; background:#10a956;
     transform:rotate(-45deg);
   }
   /* 路型标签 */
@@ -2936,51 +2893,15 @@
       <span class="anno" style="top:-12px; right:8px;">Q15 ▼ 收起路图 toggle</span>
     </div>
 
-    <!-- B14 路图：5 路完整还原版（Sammy 2026-04-28 升级到对照图密度）
-         上排：珠盘（含庄/闲/和文字）| 大路（空心圆 + 和绿斜线 + 对子小标 + 路型胶囊）
-         下排：大眼仔 | 小路 | 甴由路（小 O / 小点 / 小斜线） -->
+    <!-- B14 路图：5 路完整（珠盘 / 大路 / 大眼仔 / 小路 / 蟑螂），JS 生成 -->
     <div class="road-area">
-      <span class="anno" style="top:2px; left:50%; transform:translateX(-50%); z-index:3;">B14 完整 5 路（珠盘/大路/大眼仔/小路/甴由路）</span>
-      <!-- 上排：珠盘 + 大路 -->
-      <div class="road-row top">
-        <div class="road-cell road-pearl-cell">
-          <div class="road-hdr">
-            <span class="rh-title">珠盘路</span>
-            <span class="rh-sub">完整结果序列</span>
-            <span class="rh-legend"><i class="lg-b"></i>庄<i class="lg-p"></i>闲<i class="lg-t"></i>和</span>
-          </div>
-          <div class="pearl" id="road-pearl"></div>
-        </div>
-        <div class="road-cell road-bigroad-cell">
-          <div class="road-hdr">
-            <span class="rh-title">大路</span>
-            <span class="rh-sub">同色下行 · 拐角拖尾</span>
-            <span class="rh-legend"><i class="lg-b"></i>庄<i class="lg-p"></i>闲</span>
-          </div>
-          <div class="bigroad" id="road-big"></div>
-        </div>
-      </div>
-      <!-- 下排：大眼仔 + 小路 + 甴由路 -->
-      <div class="road-row bot">
-        <div class="road-cell">
-          <div class="road-hdr">
-            <span class="rh-title">大眼仔</span>
-            <span class="rh-sub">从第 2 列第 2 局起</span>
-          </div>
+      <span class="anno" style="top:2px; left:50%; transform:translateX(-50%); z-index:3;">B14 完整 5 路（珠盘/大路/大眼仔/小路/蟑螂）</span>
+      <div class="pearl" id="road-pearl"></div>
+      <div class="right-roads">
+        <div class="bigroad" id="road-big"></div>
+        <div class="below-roads">
           <div class="bigeye" id="road-bigeye"></div>
-        </div>
-        <div class="road-cell">
-          <div class="road-hdr">
-            <span class="rh-title">小路</span>
-            <span class="rh-sub">从第 3 列第 1 局起</span>
-          </div>
           <div class="smallrd" id="road-small"></div>
-        </div>
-        <div class="road-cell">
-          <div class="road-hdr">
-            <span class="rh-title">甴由路</span>
-            <span class="rh-sub">从第 4 列第 1 局起</span>
-          </div>
           <div class="cockroach" id="road-cock"></div>
         </div>
       </div>
@@ -4770,9 +4691,9 @@
     return result;
   }
 
-  // 渲染圆点到 grid 容器（CSS 已按 .pearl/.bigroad/.bigeye/.smallrd/.cockroach 选择器分别样式化，
-  // 这里只负责打类型 class + 位置；ties 加 .tie-slash 让 CSS 叠加和绿斜线）
-  function renderRoad(elId, points) {
+  // 渲染圆点到 grid 容器
+  function renderRoad(elId, points, mode) {
+    // mode: 'hollow' (大路/大眼仔), 'solid' (小路/珠盘), 'slash' (蟑螂)
     const el = document.getElementById(elId);
     if (!el) return;
     el.innerHTML = '';
@@ -4780,7 +4701,7 @@
     for (const p of points) {
       if (p.col >= cols) continue;
       const dot = document.createElement('div');
-      dot.className = `dot ${p.type}`;
+      dot.className = `dot ${p.type}` + (mode === 'solid' ? ' solid' : '') + (mode === 'slash' ? ' slash' : '');
       dot.style.left = `calc(100% / ${cols} * ${p.col})`;
       dot.style.top = `calc(100% / 6 * ${p.row})`;
       if (p.ties) dot.classList.add('tie-slash');
@@ -4788,13 +4709,12 @@
     }
   }
 
-  // 珠盘路：6 行展开（按列从上到下）+ 内嵌庄/闲/和 白字
+  // 珠盘路：6 行展开（按列从上到下）
   function renderPearl(history) {
     const el = document.getElementById('road-pearl');
     if (!el) return;
     el.innerHTML = '';
-    const cols = parseInt(getComputedStyle(el).getPropertyValue('--cols')) || 14;
-    const labelMap = { B: '庄', P: '闲', T: '和' };
+    const cols = parseInt(getComputedStyle(el).getPropertyValue('--cols')) || 6;
     for (let i = 0; i < history.length; i++) {
       const r = history[i];
       const col = Math.floor(i / 6);
@@ -4802,14 +4722,10 @@
       if (col >= cols) break;
       const dot = document.createElement('div');
       const type = r === 'B' ? 'banker' : r === 'P' ? 'player' : 'tie';
-      dot.className = `dot ${type}`;
+      dot.className = `dot ${type} solid`;
       dot.style.left = `calc(100% / ${cols} * ${col})`;
       dot.style.top = `calc(100% / 6 * ${row})`;
-      // 内嵌庄/闲/和 文字
-      const lbl = document.createElement('span');
-      lbl.className = 'lbl';
-      lbl.textContent = labelMap[r] || '';
-      dot.appendChild(lbl);
+      dot.innerHTML = '';
       el.appendChild(dot);
     }
   }
@@ -4818,10 +4734,10 @@
     if (!document.getElementById('road-pearl')) return;
     renderPearl(ROAD_HISTORY);
     const big = buildBigroad(ROAD_HISTORY);
-    renderRoad('road-big', big);
-    renderRoad('road-bigeye', buildDerived(big, 1));
-    renderRoad('road-small', buildDerived(big, 2));
-    renderRoad('road-cock', buildDerived(big, 3));
+    renderRoad('road-big', big, 'hollow');
+    renderRoad('road-bigeye', buildDerived(big, 1), 'hollow');
+    renderRoad('road-small', buildDerived(big, 2), 'solid');
+    renderRoad('road-cock', buildDerived(big, 3), 'slash');
     // 路型标签贴大路右下
     const big2 = document.getElementById('road-big');
     if (big2 && !big2.querySelector('.road-tag-cell')) {
