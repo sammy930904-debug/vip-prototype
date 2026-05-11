@@ -17,6 +17,52 @@
   html, body { background:#0a0d12; color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; font-size:14px; }
   body { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; }
 
+  /* ===== 📝 业务规则面板（统一紫色风格，对齐 体育代理 / 电投总控 / 电投代理 3 端）===== */
+  .legend-panel {
+    position:fixed; top:24px; right:20px;
+    width:340px; max-height:calc(100vh - 48px);
+    z-index:200; display:flex; gap:0;
+    transition:transform .3s ease;
+    color:#9B7FE8;
+  }
+  .legend-panel.collapsed { transform:translateX(calc(100% - 28px)); }
+  .legend-panel-toggle {
+    flex-shrink:0; writing-mode:vertical-rl; padding:8px 6px;
+    background:rgba(155,127,232,.08); border:1px solid rgba(155,127,232,.4);
+    border-right:none; border-radius:6px 0 0 6px;
+    color:#9B7FE8; font-size:11px; cursor:pointer; user-select:none;
+    align-self:flex-start; margin-top:20px;
+    letter-spacing:1px;
+  }
+  .legend-panel-toggle:hover { background:rgba(155,127,232,.15); }
+  .legend-panel-inner {
+    flex:1; overflow-y:auto; max-height:calc(100vh - 48px);
+    background:rgba(13,15,20,.95); border:1px solid rgba(155,127,232,.3); border-radius:8px;
+    padding:12px; backdrop-filter:blur(6px);
+  }
+  .legend-panel-inner::-webkit-scrollbar { width:4px; }
+  .legend-panel-inner::-webkit-scrollbar-thumb { background:rgba(155,127,232,.4); border-radius:2px; }
+  .legend-panel .legend {
+    background:rgba(155,127,232,.06);
+    border:1px solid rgba(155,127,232,.3); border-radius:6px;
+    padding:10px 12px; margin-bottom:10px;
+    font-size:11px; line-height:1.7; color:#9B7FE8;
+  }
+  .legend-panel .legend:last-child { margin-bottom:0; }
+  .legend-panel .legend.gold {
+    /* 保留 .gold 类向后兼容，但统一改紫色调 */
+    border-color:rgba(155,127,232,.5);
+    background:rgba(155,127,232,.1);
+  }
+  .legend-panel .legend b {
+    color:#B69BF0; font-size:12px; display:inline-block; margin-bottom:4px;
+  }
+  /* 小屏（窄于 1100px）默认折叠以免遮挡手机壳 */
+  @media (max-width: 1100px) {
+    .legend-panel { transform:translateX(calc(100% - 28px)); }
+    .legend-panel:not(.collapsed) { transform:translateX(0); }
+  }
+
   /* ===== 调试面板（左上角，切换页面） ===== */
   .debug-bar {
     position:fixed; top:12px; left:12px; z-index:9999;
@@ -5282,6 +5328,82 @@
 
   // ===== Annos on by default =====
   document.body.classList.add('annos');
+
+  // ===== Legend Panel 折叠（小屏不够空间时可收起）=====
+  function toggleLegendPanel(btn) {
+    const p = document.getElementById('legend-panel');
+    if (!p) return;
+    const open = p.classList.toggle('collapsed');
+    if (btn) btn.textContent = open ? '› 展开业务说明' : '‹ 收起';
+  }
 </script>
+
+<!-- ====== 📝 业务规则面板（紫色统一风格，对齐体育代理 / 电投总控 / 电投代理 3 端做法；给开发对接，正式环境删除）====== -->
+<aside class="legend-panel" id="legend-panel">
+  <div class="legend-panel-toggle" onclick="toggleLegendPanel(this)" title="收起/展开业务规则">‹ 收起</div>
+  <div class="legend-panel-inner">
+    <div class="legend gold">
+      <b>📝 测试 Tips</b><br/>
+      <span style="color:#9da2af">
+        · 演示账号：任意（原型层不校验）<br/>
+        · 顶部页面选择器：加载 G4 / 登录 M1 / 交收方案 M2 / 大厅 M3 / 单桌 M4 / 多桌 M5<br/>
+        · 屏幕右下"切换注释标签"：开关每个区块的紫色编号小标<br/>
+        · 屏幕右下"对照 UI 稿"：右侧浮出 Figma UI 稿对比面板<br/>
+        · 大厅 → 演示开关（屏外右下）：① 已申请传统模式 + 在 bet 页 → 触发 Q4/Q5 切桌确认 / 报错；② nats 实时推送 → 倒计时每秒动 + 路图随机加点<br/>
+        · M4 单桌 → 下注区中央倒计时圆环可点切 3 态（betting/opening/shuffle）<br/>
+        · M4 / 切桌抽屉 / 好路投注 抽屉可点"展开 ▾"切 70% / 100% 高度
+      </span>
+    </div>
+
+    <div class="legend">
+      <b>📝 关键交互入口</b><br/>
+      <span style="color:#9da2af">
+        · <b>M3 大厅</b>：H5 赌厅 Tab 切换 / H6 排序下拉（默认/好路/低至高/高至低）/ H13 桌台类型筛选 / H4 好路推荐 2×3 卡 / H4.1 整页滚动 + 折叠 + 回到顶部<br/>
+        · <b>M4 单桌</b>：B0 无 Header / B3 切桌（右侧抽屉，全路↔极简）/ B4 视频缩放 / B5 小费 / B6 桌台限红（4 行 2 列简化）/ B9 下注区翻页（左右滑/箭头/小点）/ B11.4 操作栏 3 按钮状态机（取消/撤注/重复↔确认）/ B16 系统设置 / B17 底三栏（Balance/Bet/Win-Lose）<br/>
+        · <b>M5 多桌</b>：MB2 切场馆 Tab → 联动列表 / MB3 排序 + 桌台刷新（rAF 节流 + 回顶 + flash）/ MB5.6 视频默认全关 + 同时仅 1 路 / MB6 锁定本桌（多桌可锁，置顶）<br/>
+        · <b>B7 好路投注</b>：M4 筹码栏最右 💡 iron → 底部抽屉（含 VS 牌面 + 闲庄色块 + 底部 sticky 筹码条）<br/>
+        · <b>C3 游戏记录</b>：Header 📋 icon → 抽屉（展开 ▾ / 金色 info / 多行结果 / 蓝底导出）<br/>
+        · <b>C7 筹码设置</b>：⚙ 筹码 → 2 选 1 chipType + 11 档勾选（最少保留 6 个）
+      </span>
+    </div>
+
+    <div class="legend">
+      <b>📝 业务规则</b><br/>
+      <span style="color:#9da2af">
+        · <b>百家乐 9 注</b>：庄/闲/和/庄对/闲对/幸运6/2 张幸运6/3 张幸运6（产品名）；BetType 枚举 LUCKY6 / TWOCARDSLUCKY6 / THREECARDSLUCKY6 不改<br/>
+        · <b>桌台类型</b>：快速 game_mod=1 / 传统 game_mod=2 / Lucky6 game_mod=3 / VIP 包桌 is_vip=1<br/>
+        · <b>MB10</b>：M5 多桌仅快速桌（filter 掉 game_mod=2/3 + is_vip=1）；Lucky6 玩家从大厅进单桌走 B9 Page 2<br/>
+        · <b>枪手</b>=荷官；<b>顶代</b>=代理放数；<b>账房</b>=结算；<b>飞牌</b>=AcceptedFreeGame；<b>交收方案</b>=plan 页 30%/0.8%<br/>
+        · <b>品牌</b>：⭐ + STAR VIP GAME（旧"千金汇 STAR VIP CLUB"已撤）<br/>
+        · <b>命名分层</b>：BetType.LUCKY6（代码）↔ "幸运 6"（M4 投注区 B1）↔ "老虎 6"（C11 赔率表 Q24）<br/>
+        · <b>本轮范围</b>：业务逻辑 100% 保留，仅 UI 视觉重塑 + 几处交互升级；只覆盖 H5 竖屏，横屏待启动
+      </span>
+    </div>
+
+    <div class="legend">
+      <b>📝 建议玩法</b><br/>
+      <span style="color:#9da2af">
+        1. 加载 → 登录 → 交收方案（选一个）→ 大厅 M3<br/>
+        2. M3 大厅滚一下：banner+好路提示收起，滑过 200px 出回顶按钮<br/>
+        3. 点 Newport Tab → 列表过滤；切排序"低至高"看顺序变化<br/>
+        4. 点任一桌进 M4 单桌：试翻页（Page 1 ↔ Page 2 幸运）+ 点中央圆环切 3 态 + 视频缩放 + 切桌（极简模式）<br/>
+        5. 单桌底部 💡 99 → 好路投注抽屉，试选筹码 + 点卡确定<br/>
+        6. 多桌 M5：开 1 张视频（试着开第 2 张 → 自动关第 1 张）+ 锁定一张桌（看置顶）+ 试桌台刷新<br/>
+        7. 系统设置 → 筹码设置：勾掉一档（应阻止保留 < 6 个）
+      </span>
+    </div>
+
+    <div class="legend">
+      <b>📝 关联文档</b><br/>
+      <span style="color:#9da2af">
+        · <b>PRD v1.1.2</b>：VIP电投_PRD_v1.md<br/>
+        · <b>变更清单 v0.6.2</b>：VIP电投_变更清单_v0.md<br/>
+        · <b>改造清单 v0.4.2</b>：VIP电投_改造清单_v0.md<br/>
+        · <b>测试指引</b>：VIP电投_原型测试指引_v0.md<br/>
+        · 在线版：vip-prototype 仓库 → Vercel 部署
+      </span>
+    </div>
+  </div>
+</aside>
 </body>
 </html>
