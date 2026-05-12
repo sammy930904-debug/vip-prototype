@@ -2827,7 +2827,7 @@
     <!-- 视频下方桌信息栏（Figma: 桌号 ON02 / ID / Newport logo / 限红下拉 / ? 帮助） -->
     <div class="desk-info">
       <div class="dinfo-left">
-        <b><span class="field-hint" data-hint="桌号编码：场馆缩写(ON=Newport / SOL=Solaire 等)+ 桌台序号(2 位)；与 desk_no 一一映射，由总控分配，永不复用。前端 desk-info 栏左上展示，纯只读。">👤 ON02</span></b>
+        <b>👤 ON02</b>
         <span>🪪 ONSB02240614130710</span>
       </div>
       <!-- 桌信息栏中间：当前桌所属场馆 logo（按 desk.club_id 自动显示，前端不可点）
@@ -2837,7 +2837,7 @@
         <span class="anno" style="top:-16px; left:50%; transform:translateX(-50%); white-space:nowrap;">B18 场馆 logo · 待 UI 出</span>
       </div>
       <!-- 限红显示（Sammy 2026-04-27 替换 popover 为完整桌台限红 dialog 4 行 2 列）-->
-      <span class="limit field-hint" data-hint="桌台限红：当前桌台可下注的最小-最大金额范围。规则：每桌独立配置(不是全局)；玩家个人限红(my-limit)与桌台限红取交集生效；点击展开桌台限红 dialog (B6.3)，含 4 行(庄/闲/和、对子、幸运6) × 2 列(注区/可下注区间)。" onclick="openDialog('table-limit')">🪙 20-100K ▾</span>
+      <span class="limit" onclick="openDialog('table-limit')">🪙 20-100K ▾</span>
       <!-- ? 玩法说明（现状 howToPlayImg → setDialogState({gamePlay:true}) → <GamePlay> 弹窗）
            Sammy 2026-04-25 校正：位置在限红右侧（不在视频区 icon 柱） -->
       <span class="help" title="玩法说明" onclick="openDialog('gameplay')">?</span>
@@ -2914,7 +2914,7 @@
           <div class="bet-meta"><span>👤 3</span><span>3K 🪙</span></div>
         </div>
         <span class="cd-center betting" id="bet-cd-center" onclick="cycleBetCdState()" title="演示状态切换">
-          <span class="cd-num field-hint" data-hint="倒计时(stop_bet_at)：投注剩余秒数。圆环 3 态(Q27.7)：① betting 绿环+数字 ② opening 金环+开牌中 ③ shuffle 红环+换靴。原型可点圆环切态演示。实施按 desk_status 2/3/4 + WS 事件切 class。" id="bet-cd-num">12</span>
+          <span class="cd-num" id="bet-cd-num">12</span>
           <span class="cd-label" id="bet-cd-label">开牌中</span>
         </span>
         <div class="bet-cell banker" onclick="tapBetCell(this)">
@@ -2964,9 +2964,9 @@
     <!-- Balance / Bet / Win/Lose 三栏统计（Sammy 2026-04-27 修订：Balance/Bet 后无功能不放 ⟳；
          右侧 ▼ 唯一功能 = 收起整个路图区，上方下注台自动占位扩展（Q15 betCollapsed toggle） -->
     <div class="data-row" style="position:relative;">
-      <span class="stat"><label>Balance</label><b>20.00005M</b></span>
-      <span class="stat mid"><label>Bet</label><b>0</b></span>
-      <span class="stat"><label>Win/Lose</label><b class="win">+20.00005M</b></span>
+      <span class="stat"><label class="field-hint" data-hint="Balance 账户余额：当前账号可用余额（auth.balance）。下注前后端二次校验余额 ≥ 注码；不含冻结金额。换桌不变。">Balance</label><b>20.00005M</b></span>
+      <span class="stat mid"><label class="field-hint" data-hint="Bet 当前下注：本局已下注的总注码（current_bet_amount）。开新局清零；撤注后扣回。">Bet</label><b>0</b></span>
+      <span class="stat"><label class="field-hint" data-hint="Win/Lose 输赢：本局或本桌累计输赢（pl_amount）。正数绿色（赢），负数红色（输）。结算后实时更新；换桌重置。">Win/Lose</label><b class="win">+20.00005M</b></span>
       <span class="wl-toggle" title="收起 / 展开路图" onclick="toggleBetCollapse()">▼</span>
       <span class="anno" style="top:-12px; right:8px;">Q15 ▼ 收起路图 toggle</span>
     </div>
@@ -2988,13 +2988,13 @@
     <!-- B14 底部 7 维度统计 + 问路（Sammy 2026-04-27 截图：总/庄/闲/和/庄对/闲对/幸运6 + 庄问路/闲问路；
          每个数字标签按 H9 色值色块化：局/总 #da8400 · 庄 #ff1921 · 闲 #0083ff · 和 #00c500 · 庄对 #ff4646 · 闲对 #0096ff · 幸运6 #ff6619）-->
     <div class="bottom-stats">
-      <span class="st st-total">总<b>128</b></span>
-      <span class="st st-banker">庄<b>42</b></span>
-      <span class="st st-player">闲<b>38</b></span>
-      <span class="st st-tie">和<b>12</b></span>
-      <span class="st st-bpair">庄对<b>5</b></span>
-      <span class="st st-ppair">闲对<b>3</b></span>
-      <span class="st st-lucky6">幸运6<b>2</b></span>
+      <span class="st st-total"><span class="field-hint" data-hint="总：本靴牌至今的总开局数。数据源 gameResult_statistics.totalCount，从 nats LobbyGameEvent 实时累加；换靴 / 重开牌靴时归零。">总</span><b>128</b></span>
+      <span class="st st-banker"><span class="field-hint" data-hint="庄：本靴累计庄赢次数。Banker 胜出（庄家点数 > 闲家）；数据源 gameResult_statistics.bankerCount。换靴归零。">庄</span><b>42</b></span>
+      <span class="st st-player"><span class="field-hint" data-hint="闲：本靴累计闲赢次数。Player 胜出（闲家点数 > 庄家）；数据源 gameResult_statistics.playerCount。换靴归零。">闲</span><b>38</b></span>
+      <span class="st st-tie"><span class="field-hint" data-hint="和：本靴累计和局次数。庄闲点数相同；数据源 gameResult_statistics.tieCount。换靴归零。">和</span><b>12</b></span>
+      <span class="st st-bpair"><span class="field-hint" data-hint="庄对：本靴累计庄家对子次数。庄家前两张牌同点；数据源 gameResult_statistics.bankerPairCount。换靴归零。">庄对</span><b>5</b></span>
+      <span class="st st-ppair"><span class="field-hint" data-hint="闲对：本靴累计闲家对子次数。闲家前两张牌同点；数据源 gameResult_statistics.playerPairCount。换靴归零。">闲对</span><b>3</b></span>
+      <span class="st st-lucky6"><span class="field-hint" data-hint="幸运6：本靴累计 Lucky6 中奖次数。庄家以 6 点胜出（2 张牌 1:12 / 3 张牌 1:20）；数据源 gameResult_statistics.luckySixCount。BetType 枚举 LUCKY6。换靴归零。">幸运6</span><b>2</b></span>
       <div class="ask">
         <span class="a ab">庄问路</span>
         <span class="a ap">闲问路</span>
