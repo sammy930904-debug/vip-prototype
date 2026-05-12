@@ -17,6 +17,37 @@
   html, body { background:#0a0d12; color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; font-size:14px; }
   body { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; }
 
+  /* ===== 📝 字段级业务规则气泡 hover（Sammy 2026-05-11，跨 3 端统一）=====
+     用法：<span class="field-hint" data-hint="字段规则文本">字段名</span>
+     - 紫色虚线下划标识可 hover；cursor:help
+     - hover 时 vanilla JS 把气泡 portal 到 body，position:fixed，避免被 overflow:hidden / z-index 裁切
+     - 气泡 ::before 显示 "📝 业务规则" 标题；::after 显示下方紫色三角指向锚点 */
+  .field-hint {
+    cursor:help; border-bottom:1px dotted rgba(155,127,232,.6);
+  }
+  .field-hint-bubble {
+    position:fixed; padding:10px 14px;
+    background:#1A1428; border:2px solid #9B7FE8; border-radius:8px;
+    color:#fff; font-size:12px; line-height:1.65;
+    min-width:240px; max-width:340px; z-index:99999;
+    text-align:left; white-space:normal;
+    box-shadow:0 8px 32px rgba(0,0,0,.85), 0 0 0 4px rgba(155,127,232,.15);
+    pointer-events:none; font-weight:normal;
+    font-family:-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    transform:translate(-50%, calc(-100% - 10px));
+  }
+  .field-hint-bubble::before {
+    content:"📝 业务规则"; display:block;
+    color:#C4A8FF; font-weight:700; font-size:11px;
+    margin-bottom:6px; padding-bottom:5px; letter-spacing:.5px;
+    border-bottom:1px solid rgba(155,127,232,.4);
+  }
+  .field-hint-bubble::after {
+    content:""; position:absolute; top:100%; left:50%;
+    transform:translateX(-50%);
+    border:8px solid transparent; border-top-color:#9B7FE8;
+  }
+
   /* ===== 📝 业务规则面板（统一紫色风格，对齐 体育代理 / 电投总控 / 电投代理 3 端）===== */
   .legend-panel {
     position:fixed; top:24px; right:20px;
@@ -37,8 +68,9 @@
   .legend-panel-toggle:hover { background:rgba(155,127,232,.15); }
   .legend-panel-inner {
     flex:1; overflow-y:auto; max-height:calc(100vh - 48px);
-    background:rgba(13,15,20,.95); border:1px solid rgba(155,127,232,.3); border-radius:8px;
-    padding:12px; backdrop-filter:blur(6px);
+    background:#1A1428; border:1px solid rgba(155,127,232,.5); border-radius:8px;
+    padding:12px;
+    box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 4px rgba(155,127,232,.1);
   }
   .legend-panel-inner::-webkit-scrollbar { width:4px; }
   .legend-panel-inner::-webkit-scrollbar-thumb { background:rgba(155,127,232,.4); border-radius:2px; }
@@ -2795,7 +2827,7 @@
     <!-- 视频下方桌信息栏（Figma: 桌号 ON02 / ID / Newport logo / 限红下拉 / ? 帮助） -->
     <div class="desk-info">
       <div class="dinfo-left">
-        <b>👤 ON02</b>
+        <b><span class="field-hint" data-hint="桌号编码：场馆缩写(ON=Newport / SOL=Solaire 等)+ 桌台序号(2 位)；与 desk_no 一一映射，由总控分配，永不复用。前端 desk-info 栏左上展示，纯只读。">👤 ON02</span></b>
         <span>🪪 ONSB02240614130710</span>
       </div>
       <!-- 桌信息栏中间：当前桌所属场馆 logo（按 desk.club_id 自动显示，前端不可点）
@@ -2805,7 +2837,7 @@
         <span class="anno" style="top:-16px; left:50%; transform:translateX(-50%); white-space:nowrap;">B18 场馆 logo · 待 UI 出</span>
       </div>
       <!-- 限红显示（Sammy 2026-04-27 替换 popover 为完整桌台限红 dialog 4 行 2 列）-->
-      <span class="limit" onclick="openDialog('table-limit')">🪙 20-100K ▾</span>
+      <span class="limit field-hint" data-hint="桌台限红：当前桌台可下注的最小-最大金额范围。规则：每桌独立配置(不是全局)；玩家个人限红(my-limit)与桌台限红取交集生效；点击展开桌台限红 dialog (B6.3)，含 4 行(庄/闲/和、对子、幸运6) × 2 列(注区/可下注区间)。" onclick="openDialog('table-limit')">🪙 20-100K ▾</span>
       <!-- ? 玩法说明（现状 howToPlayImg → setDialogState({gamePlay:true}) → <GamePlay> 弹窗）
            Sammy 2026-04-25 校正：位置在限红右侧（不在视频区 icon 柱） -->
       <span class="help" title="玩法说明" onclick="openDialog('gameplay')">?</span>
@@ -2876,17 +2908,17 @@
            B3.1 圆环 3 状态：投注中（绿环+数字）/ 开牌中（金环+开牌中文字）/ 洗牌中（红环+换靴文字）-->
       <div class="bet-row row-main">
         <div class="bet-cell player" onclick="tapBetCell(this)">
-          <span class="zh">闲</span>
+          <span class="zh field-hint" data-hint="闲(Player)：闲家点数大过庄家时中奖。赔率 1:1。BetType 枚举 PLAYER。注：图中 1:1 是产品文案；后端 odds 字段实时返回；个人限红 + 桌台限红双重校验后才允许下注。">闲</span>
           <span class="en">Player</span>
           <span class="odds">1:1</span>
           <div class="bet-meta"><span>👤 3</span><span>3K 🪙</span></div>
         </div>
         <span class="cd-center betting" id="bet-cd-center" onclick="cycleBetCdState()" title="演示状态切换">
-          <span class="cd-num" id="bet-cd-num">12</span>
+          <span class="cd-num field-hint" data-hint="倒计时(stop_bet_at)：投注剩余秒数。圆环 3 态(Q27.7)：① betting 绿环+数字 ② opening 金环+开牌中 ③ shuffle 红环+换靴。原型可点圆环切态演示。实施按 desk_status 2/3/4 + WS 事件切 class。" id="bet-cd-num">12</span>
           <span class="cd-label" id="bet-cd-label">开牌中</span>
         </span>
         <div class="bet-cell banker" onclick="tapBetCell(this)">
-          <span class="zh">庄</span>
+          <span class="zh field-hint" data-hint="庄(Banker)：庄家点数大过闲家时中奖。赔率 1:0.95(扣 5% 佣金)。BetType 枚举 BANKER。若押注命中 Lucky6 庄赢，按 game_mod=3 走 Lucky6 单独赔付逻辑。">庄</span>
           <span class="en">Banker</span>
           <span class="odds">1:0.95</span>
           <div class="bet-meta"><span>👤 0</span><span>0 🪙</span></div>
@@ -5328,6 +5360,37 @@
 
   // ===== Annos on by default =====
   document.body.classList.add('annos');
+
+  // ===== 📝 字段级业务规则气泡（Sammy 2026-05-11，跨 3 端统一）=====
+  // vanilla JS 版（参考体育项目 React FieldHint 改写）：portal 到 body + fixed 定位，
+  // 避开 overflow:hidden / z-index 裁切；hover 进/出 显示/移除气泡
+  (function bindFieldHints() {
+    let bubble = null;
+    function show(el) {
+      const hint = el.getAttribute('data-hint');
+      if (!hint) return;
+      hide();
+      bubble = document.createElement('div');
+      bubble.className = 'field-hint-bubble';
+      bubble.textContent = hint;
+      document.body.appendChild(bubble);
+      const r = el.getBoundingClientRect();
+      bubble.style.left = (r.left + r.width / 2) + 'px';
+      bubble.style.top = r.top + 'px';
+    }
+    function hide() {
+      if (bubble) { bubble.remove(); bubble = null; }
+    }
+    document.addEventListener('mouseenter', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('field-hint')) show(e.target);
+    }, true);
+    document.addEventListener('mouseleave', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('field-hint')) hide();
+    }, true);
+    // 滚动/resize 时隐藏避免错位
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('resize', hide);
+  })();
 
   // ===== Legend Panel 折叠（小屏不够空间时可收起）=====
   function toggleLegendPanel(btn) {
