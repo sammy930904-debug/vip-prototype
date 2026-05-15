@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>USDT 快捷存币 — 数据流 & 状态图 (v5)</title>
+<style>
+  html,body{margin:0;padding:0;background:#f6f7fb;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;}
+  .bar{background:#211F23;color:#E8BD70;padding:10px 20px;font-size:14px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .bar b{color:#fff}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px}
+  .stage{padding:8px 20px}
+  .mermaid{font-size:14px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+
+<div class="bar">
+  <b>USDT 快捷存币 — 数据流 & 状态 (v5:钱包只剩 1 页,我已转账→跳交易记录)</b>
+  <span class="chip"><span class="sw" style="background:#dbe9ff"></span>👤 钱包(会员)</span>
+  <span class="chip"><span class="sw" style="background:#d1fae5"></span>⛓ 链上 / 网关</span>
+  <span class="chip"><span class="sw" style="background:#fef3c7"></span>🖥 业务系统</span>
+  <span class="chip"><span class="sw" style="background:#fde68a"></span>💳 存卡 / 交易记录</span>
+  <span class="chip"><span class="sw" style="background:#E8BD70"></span>📝 账房(只读)</span>
+</div>
+
+<div class="stage">
+<div class="mermaid">
+flowchart LR
+    classDef wallet fill:#dbe9ff,stroke:#3b82f6,color:#1e3a8a
+    classDef chain fill:#d1fae5,stroke:#10b981,color:#064e3b
+    classDef system fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef cashier fill:#E8BD70,stroke:#a8801e,color:#3a2a09
+    classDef record fill:#fde68a,stroke:#a16207,color:#78350f,font-weight:bold
+    classDef risk fill:#fff,stroke:#9b7fe8,color:#581c87,stroke-dasharray:4 4
+
+    %% ===== 钱包端 (1 页) =====
+    W1["👤钱包 快捷存币<br/>显示 OKADA 地址<br/>+ 二维码 + 温馨提示<br/>(无金额输入,无 stepper)"]:::wallet
+    WTX["👤钱包 交易记录<br/>(预筛选 USDT + 本月)"]:::record
+
+    %% ===== 链上/网关 =====
+    CH["⛓链上<br/>USDT-TRC20 转账<br/>(会员自定金额)"]:::chain
+    GW["⛓网关<br/>notify 回调<br/>(amount/txid/sign)"]:::chain
+    RISK["⛓网关 AML 引擎<br/>isAML 布尔标记<br/>(true=高风险地址/false=干净)"]:::risk
+
+    %% ===== 系统状态 =====
+    S0(["🖥系统<br/>CREATED"]):::system
+    SA(["🖥系统<br/>AUTO_APPROVED<br/>(订单不再超时,只此一种状态)"]):::system
+
+    %% ===== 存卡记录 =====
+    REC["💳存卡记录<br/>新增流水<br/>金额=链上 amount<br/>场馆=OKADA<br/>风险标记=⚠️ 高风险地址 / 正常"]:::record
+
+    %% ===== 账房(只读) =====
+    B1["📝账房<br/>存币列表(只读)<br/>看 ⚠️ 高风险地址 + 详情<br/>不审核、不退回"]:::cashier
+
+    %% ===== 流向 =====
+    W1 -- "点 我已转账<br/>(直接跳交易记录)" --> WTX
+    W1 -. "扫码/复制地址 转账" .-> CH
+    CH --> GW
+    GW -- "amount/txid 验签" --> S0
+    GW -. "并行" .-> RISK
+    RISK -. "风险标签<br/>(不阻断)" .-> SA
+
+    S0 --> SA
+    SA --> REC
+    REC -. "渲染到 USDT 交易行" .-> WTX
+    REC -. "事后查看" .-> B1
+</div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad:true,
+    theme:'default',
+    flowchart:{useMaxWidth:true, htmlLabels:true, curve:'basis', nodeSpacing:40, rankSpacing:60}
+  });
+</script>
+</body>
+</html>

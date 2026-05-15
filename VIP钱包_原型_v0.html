@@ -1,0 +1,2635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VIP电投 · 钱包端 H5 会员原型 v0</title>
+<style>
+  /* ===== 全局 reset + 变量 ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg:#0c0f14; --panel:#151a23; --panel-2:#1e242f; --line:#2a3140;
+    --ink:#e8ecf3; --ink-2:#9aa3b4; --ink-3:#5a6374;
+    --gold:#ECCC80; --gold-2:#c9a24e; --red:#d6423b; --blue:#3b7cd6; --green:#37a06b;
+    --accent:#4a9eff;
+    --radius:10px;
+    --purple:#9B7FE8; --purple-bg:rgba(155,127,232,.06); --purple-border:rgba(155,127,232,.3);
+  }
+  html, body { background:#0a0d12; color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; font-size:14px; }
+  body { min-height:100vh; padding:60px 16px 16px; }
+
+  /* ===== 字段级业务规则气泡 ===== */
+  .field-hint { cursor:help; border-bottom:1px dotted rgba(155,127,232,.6); }
+  .field-hint-bubble {
+    position:fixed; padding:10px 14px;
+    background:#1A1428; border:2px solid var(--purple); border-radius:8px;
+    color:#fff; font-size:12px; line-height:1.65;
+    min-width:240px; max-width:340px; z-index:99999;
+    text-align:left; white-space:normal;
+    box-shadow:0 8px 32px rgba(0,0,0,.85), 0 0 0 4px rgba(155,127,232,.15);
+    pointer-events:none; font-weight:normal;
+    transform:translate(-50%, calc(-100% - 10px));
+  }
+  .field-hint-bubble::before {
+    content:"📝 业务规则"; display:block;
+    color:#C4A8FF; font-weight:700; font-size:11px;
+    margin-bottom:6px; padding-bottom:5px; letter-spacing:.5px;
+    border-bottom:1px solid rgba(155,127,232,.4);
+  }
+  .field-hint-bubble::after {
+    content:""; position:absolute; top:100%; left:50%;
+    transform:translateX(-50%);
+    border:8px solid transparent; border-top-color:var(--purple);
+  }
+
+  /* ===== 顶部 debug-bar（页面切换 + 语言切换 + 标题）===== */
+  .topbar {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    background:#0a0d12; border-bottom:1px solid var(--line);
+    padding:8px 16px; display:flex; align-items:center; gap:10px;
+    overflow-x:auto; white-space:nowrap;
+  }
+  .topbar .title { color:var(--gold); font-weight:700; font-size:13px; flex-shrink:0; }
+  .topbar .lang { display:inline-flex; gap:4px; flex-shrink:0; margin-left:8px; }
+  .topbar .lang button { background:var(--panel-2); border:1px solid var(--line); color:var(--ink-2); padding:4px 10px; border-radius:6px; cursor:pointer; font-size:12px; }
+  .topbar .lang button.active { background:var(--gold); color:#000; border-color:var(--gold); }
+  .topbar .pages { display:inline-flex; gap:4px; flex-shrink:0; }
+  .topbar .pages button {
+    background:var(--panel-2); border:1px solid var(--line); color:var(--ink-2);
+    padding:4px 8px; border-radius:6px; cursor:pointer; font-size:11px;
+  }
+  .topbar .pages button:hover { background:var(--line); color:var(--ink); }
+  .topbar .pages button.active { background:var(--purple); color:#fff; border-color:var(--purple); }
+
+  /* ===== 主布局：左手机 + 右紫色面板 ===== */
+  .stage { display:flex; gap:24px; justify-content:center; align-items:flex-start; flex-wrap:wrap; }
+
+  /* ===== 手机外壳 ===== */
+  .device {
+    width:390px; height:844px;
+    background:var(--bg); border-radius:28px; overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.5), 0 0 0 10px #1a1d24, 0 0 0 11px #333;
+    position:relative; display:flex; flex-direction:column; flex-shrink:0;
+  }
+  .status-bar {
+    height:44px; flex-shrink:0; background:#000; color:#fff;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 22px; font-size:14px; font-weight:600;
+  }
+  .status-bar .indicators { display:flex; gap:5px; font-size:12px; }
+  #page-container { flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+  .page { width:100%; flex:1; display:none; flex-direction:column; overflow:hidden; min-height:0; position:relative; background:var(--bg); }
+  .page.active { display:flex; }
+
+  /* ===== 通用 nav bar ===== */
+  .nav-bar {
+    height:44px; flex-shrink:0; display:flex; align-items:center; padding:0 14px;
+    background:#000; border-bottom:1px solid rgba(255,255,255,.06); position:relative;
+  }
+  .nav-bar .back { color:var(--gold); cursor:pointer; font-size:18px; padding:4px 8px; }
+  .nav-bar .nav-title { position:absolute; left:50%; transform:translateX(-50%); color:#fff; font-weight:600; font-size:15px; }
+  .nav-bar .nav-right { margin-left:auto; color:var(--gold); font-size:12px; cursor:pointer; }
+
+  /* ===== body 滚动区 ===== */
+  .body-scroll { flex:1; overflow-y:auto; overflow-x:hidden; padding-bottom:70px; }
+  .body-scroll::-webkit-scrollbar { width:3px; }
+  .body-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:2px; }
+
+  /* ===== Tab Bar（5 项 footer）===== */
+  .tab-bar {
+    position:absolute; left:0; right:0; bottom:0; height:60px;
+    background:#0b0d12; border-top:1px solid rgba(255,255,255,.06);
+    display:flex; z-index:5;
+  }
+  .tab-bar .t {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:#7d8190; font-size:10px; gap:2px; cursor:pointer;
+  }
+  .tab-bar .t .ico { width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .tab-bar .t.active { color:var(--gold); }
+
+  /* ===== Home 风格 ===== */
+  .home-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 16px 10px; flex-shrink:0;
+  }
+  .vip-banner {
+    display:flex; align-items:center; gap:8px;
+    background:linear-gradient(135deg,#3a2a15,#5a4225); padding:6px 12px;
+    border-radius:18px; border:1px solid #6a4f2a;
+  }
+  .vip-banner .vip-lv { color:var(--gold); font-weight:700; font-size:15px; }
+  .vip-banner .star { color:var(--gold); font-size:14px; }
+  .vip-banner .star-num { color:#fff; font-size:12px; font-weight:600; }
+  .home-header .icons { display:flex; gap:14px; }
+  .home-header .icons .ic { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer; position:relative; }
+  .home-header .icons .ic .dot { position:absolute; top:-2px; right:-4px; background:var(--red); color:#fff; font-size:9px; padding:1px 4px; border-radius:8px; }
+
+  /* 公告条 */
+  .marquee {
+    margin:6px 16px; padding:6px 12px; background:rgba(236,204,128,.08); border:1px solid rgba(236,204,128,.2);
+    border-radius:8px; font-size:11px; color:var(--gold-2); display:flex; align-items:center; gap:8px;
+  }
+  .marquee .ico { font-size:13px; }
+  .marquee .text { flex:1; overflow:hidden; white-space:nowrap; }
+
+  /* 常用服务 4x2 宫格 */
+  .often-nav {
+    margin:14px 12px 0; padding:14px 8px; border-radius:16px;
+    background:linear-gradient(135deg,#1a1d28,#15182030); border:1px solid rgba(255,255,255,.04);
+    display:grid; grid-template-columns:repeat(4,1fr); gap:10px 4px;
+  }
+  .often-nav .nav-item {
+    display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;
+  }
+  .often-nav .nav-icon {
+    width:44px; height:44px; border-radius:50%; background:#3E3B37;
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+  }
+  .often-nav .nav-label { color:#E0DEE3; font-size:11px; text-align:center; }
+
+  /* Tab 切换 */
+  .h-tabs { display:flex; padding:14px 12px 0; border-bottom:1px solid rgba(255,255,255,.04); flex-shrink:0; }
+  .h-tabs .tab {
+    flex:none; padding:8px 14px 10px; font-size:13px; color:var(--ink-2); cursor:pointer;
+    position:relative;
+  }
+  .h-tabs .tab.active { color:var(--gold); font-weight:600; }
+  .h-tabs .tab.active::after {
+    content:""; position:absolute; bottom:-1px; left:14px; right:14px; height:2px; background:var(--gold); border-radius:2px;
+  }
+
+  /* 记录卡片 */
+  .rec-card {
+    margin:10px 12px; padding:12px; background:var(--panel); border-radius:10px;
+    border:1px solid rgba(255,255,255,.04);
+  }
+  .rec-card .rec-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; color:var(--ink-2); }
+  .rec-card .rec-row .v { color:var(--ink); }
+  .rec-card .rec-row.h { color:var(--ink); font-size:13px; font-weight:600; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,.04); margin-bottom:6px; }
+  .rec-card .amount { color:var(--gold); font-weight:700; font-size:16px; }
+  .rec-card .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; }
+  .rec-card .badge.ok { background:rgba(55,160,107,.15); color:var(--green); }
+  .rec-card .badge.warn { background:rgba(214,66,59,.15); color:var(--red); }
+  .rec-card .badge.pending { background:rgba(236,204,128,.15); color:var(--gold); }
+
+  /* 卡片大列表行 */
+  .row {
+    display:flex; align-items:center; padding:13px 16px; background:var(--panel); margin:8px 12px;
+    border-radius:10px; cursor:pointer; gap:10px;
+  }
+  .row .row-ico { width:36px; height:36px; border-radius:50%; background:#3E3B37; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .row .row-main { flex:1; }
+  .row .row-title { color:var(--ink); font-size:14px; }
+  .row .row-sub { color:var(--ink-2); font-size:11px; margin-top:2px; }
+  .row .row-right { color:var(--ink-2); font-size:12px; }
+  .row .arrow { color:var(--ink-3); }
+
+  /* form */
+  .form-card { margin:12px; background:var(--panel); border-radius:10px; padding:4px 14px; }
+  .form-item {
+    display:flex; align-items:center; padding:14px 0; border-bottom:1px solid rgba(255,255,255,.04);
+    min-height:48px;
+  }
+  .form-item:last-child { border-bottom:none; }
+  .form-item .label { width:100px; color:var(--ink-2); font-size:13px; flex-shrink:0; }
+  .form-item .ipt { flex:1; background:transparent; border:none; color:var(--ink); font-size:14px; outline:none; text-align:right; }
+  .form-item .ipt::placeholder { color:var(--ink-3); }
+  .form-item .arrow { color:var(--ink-3); margin-left:6px; }
+
+  /* button */
+  .btn-primary {
+    margin:24px 14px; padding:13px; border-radius:24px; text-align:center; cursor:pointer;
+    background:linear-gradient(135deg,#ECCC80,#C9A24E); color:#1a1100; font-weight:700; font-size:15px;
+  }
+  .btn-secondary {
+    margin:8px 14px; padding:13px; border-radius:24px; text-align:center; cursor:pointer;
+    background:rgba(255,255,255,.06); color:var(--ink); font-size:14px;
+  }
+
+  /* tip / hint blocks */
+  .info-tip {
+    margin:10px 12px; padding:10px 12px; background:rgba(59,124,214,.08); border:1px solid rgba(59,124,214,.2);
+    border-radius:8px; font-size:11px; color:#9bb5d6; line-height:1.6;
+  }
+  .warn-tip {
+    margin:10px 12px; padding:10px 12px; background:rgba(214,66,59,.08); border:1px solid rgba(214,66,59,.2);
+    border-radius:8px; font-size:11px; color:#e58783; line-height:1.6;
+  }
+  /* 温馨提示 — 沿用现状项目风格,无 emoji,低饱和,完整段落 */
+  .tips-card {
+    margin:18px 14px 14px; padding:18px 16px; background:#2a2628;
+    border-radius:10px; color:#a5a3a5; font-size:12px; line-height:1.85;
+  }
+  .tips-card h4 { color:#ECCC80; font-size:14px; margin:0 0 12px; font-weight:600; }
+  .tips-card p { margin:0 0 10px; }
+  .tips-card ol { padding-left:18px; margin:8px 0 0; }
+  .tips-card li { margin-bottom:8px; }
+
+  /* user center banner */
+  .uc-banner {
+    margin:12px; padding:16px; border-radius:16px;
+    background:linear-gradient(135deg,#2a1f3e,#1a1428); position:relative; overflow:hidden;
+    border:1px solid rgba(236,204,128,.2);
+  }
+  .uc-banner .user-row { display:flex; align-items:center; gap:12px; }
+  .uc-banner .avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,#ECCC80,#C9A24E); display:flex; align-items:center; justify-content:center; font-size:22px; color:#1a1100; font-weight:700; }
+  .uc-banner .user-info .name { color:#fff; font-weight:600; font-size:16px; }
+  .uc-banner .user-info .acc { color:var(--gold); font-size:12px; margin-top:2px; }
+  .uc-banner .star-coin {
+    margin-top:14px; padding:10px 12px; background:rgba(0,0,0,.32); border-radius:10px;
+    display:flex; align-items:center; justify-content:space-between; font-size:12px;
+  }
+  .uc-banner .star-coin .v { color:var(--gold); font-weight:700; font-size:18px; }
+
+  .uc-grid {
+    margin:0 12px; padding:14px 8px; background:var(--panel); border-radius:14px;
+    display:grid; grid-template-columns:repeat(4,1fr); gap:14px 0;
+  }
+  .uc-grid .grid-item { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
+  .uc-grid .grid-icon { font-size:22px; }
+  .uc-grid .grid-label { font-size:11px; color:var(--ink-2); }
+
+  .uc-cell-group { margin:14px 12px 0; background:var(--panel); border-radius:14px; padding:0 14px; }
+  .uc-cell {
+    display:flex; align-items:center; padding:14px 0; border-bottom:1px solid rgba(255,255,255,.04);
+    cursor:pointer;
+  }
+  .uc-cell:last-child { border-bottom:none; }
+  .uc-cell .cell-ico { width:24px; height:24px; margin-right:10px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .uc-cell .cell-title { flex:1; color:var(--ink); font-size:14px; }
+  .uc-cell .cell-right { color:var(--ink-2); font-size:12px; }
+  .uc-cell .cell-arrow { color:var(--ink-3); margin-left:6px; }
+
+  /* Toast */
+  .toast {
+    position:fixed; left:50%; bottom:80px; transform:translateX(-50%);
+    background:rgba(0,0,0,.85); color:#fff; padding:10px 18px; border-radius:24px;
+    font-size:13px; z-index:99998; pointer-events:none;
+    opacity:0; transition:opacity .3s;
+  }
+  .toast.show { opacity:1; }
+
+  /* ===== 紫色业务说明面板（inline，手机右侧）===== */
+  .legend-panel-inline {
+    width:340px; max-width:340px; flex-shrink:0;
+    background:#1A1428; border:1px solid rgba(155,127,232,.5); border-radius:8px;
+    padding:14px; color:var(--purple); font-size:11px; line-height:1.7;
+    max-height:844px; overflow-y:auto;
+    box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 4px rgba(155,127,232,.1);
+  }
+  .legend-panel-inline::-webkit-scrollbar { width:4px; }
+  .legend-panel-inline::-webkit-scrollbar-thumb { background:rgba(155,127,232,.4); border-radius:2px; }
+  .legend-panel-inline .legend {
+    background:var(--purple-bg); border:1px solid var(--purple-border); border-radius:6px;
+    padding:10px 12px; margin-bottom:10px;
+  }
+  .legend-panel-inline .legend:last-child { margin-bottom:0; }
+  .legend-panel-inline .legend b { color:#B69BF0; font-size:12px; display:inline-block; margin-bottom:4px; }
+  .legend-panel-inline .legend ul { padding-left:14px; margin-top:4px; }
+  .legend-panel-inline .legend li { margin-bottom:3px; }
+  .legend-panel-inline .legend code {
+    background:rgba(155,127,232,.15); color:#D4BAFF; padding:1px 4px; border-radius:3px;
+    font-family:"SF Mono","Monaco",monospace; font-size:10px;
+  }
+  .legend-panel-inline h2 { color:var(--gold); font-size:13px; margin-bottom:10px; }
+
+  /* ====== Login page ====== */
+  .login-bg {
+    flex:1; display:flex; flex-direction:column; padding:60px 32px 32px;
+    background:linear-gradient(180deg,#1a1428 0%,#0c0f14 60%);
+  }
+  .login-bg .logo { text-align:center; color:var(--gold); font-size:28px; font-weight:800; letter-spacing:3px; }
+  .login-bg .sub { text-align:center; color:var(--ink-2); font-size:11px; margin-top:6px; letter-spacing:2px; }
+  .login-form { margin-top:60px; }
+  .login-form .row {
+    display:block; margin:0 0 16px; padding:14px; background:rgba(255,255,255,.05); border-radius:24px;
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .login-form .row input {
+    width:100%; background:transparent; border:none; outline:none; color:#fff; font-size:14px;
+  }
+  .login-tabs { display:flex; justify-content:center; gap:24px; margin-bottom:18px; }
+  .login-tabs .t { color:var(--ink-2); font-size:14px; padding:6px 0; cursor:pointer; }
+  .login-tabs .t.active { color:var(--gold); border-bottom:2px solid var(--gold); }
+
+  /* ====== Lottery ====== */
+  .lottery-wheel {
+    margin:24px auto; width:280px; height:280px; border-radius:50%;
+    background:conic-gradient(#ECCC80 0deg 45deg, #d6423b 45deg 90deg, #ECCC80 90deg 135deg, #3b7cd6 135deg 180deg, #ECCC80 180deg 225deg, #37a06b 225deg 270deg, #ECCC80 270deg 315deg, #9B7FE8 315deg 360deg);
+    position:relative; border:6px solid #c9a24e;
+    box-shadow:0 0 30px rgba(236,204,128,.3);
+  }
+  .lottery-wheel::before {
+    content:"开始"; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:70px; height:70px; border-radius:50%; background:linear-gradient(135deg,#ECCC80,#C9A24E);
+    color:#1a1100; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px;
+    box-shadow:0 4px 12px rgba(0,0,0,.4); cursor:pointer;
+  }
+
+  /* selectGame 大卡片 */
+  .game-card {
+    margin:14px 12px; height:120px; border-radius:14px; padding:18px;
+    background:linear-gradient(135deg,#3a2a55,#1a1428); color:#fff; cursor:pointer;
+    position:relative; overflow:hidden;
+  }
+  .game-card.casino { background:linear-gradient(135deg,#8a1d2a,#1a1428); }
+  .game-card.sexy { background:linear-gradient(135deg,#d6427a,#1a1428); }
+  .game-card.slot { background:linear-gradient(135deg,#3b7cd6,#1a1428); }
+  .game-card.mi { background:linear-gradient(135deg,#ECCC80,#5a4225); color:#1a1100; }
+  .game-card .gc-title { font-size:20px; font-weight:700; }
+  .game-card .gc-sub { font-size:11px; margin-top:6px; opacity:.85; }
+  .game-card .gc-enter {
+    position:absolute; right:18px; bottom:18px; padding:6px 16px;
+    background:rgba(255,255,255,.2); border-radius:16px; font-size:12px;
+  }
+
+  /* notify list */
+  .notify-item {
+    margin:8px 12px; padding:12px; background:var(--panel); border-radius:10px;
+    cursor:pointer; position:relative;
+  }
+  .notify-item .nt-title { color:var(--ink); font-weight:600; font-size:14px; margin-bottom:6px; }
+  .notify-item .nt-body { color:var(--ink-2); font-size:12px; line-height:1.5; }
+  .notify-item .nt-time { color:var(--ink-3); font-size:11px; margin-top:8px; }
+  .notify-item.unread::before { content:""; position:absolute; top:14px; right:14px; width:8px; height:8px; border-radius:50%; background:var(--red); }
+  .notify-item .verify-btn {
+    margin-top:10px; padding:6px 14px; background:rgba(236,204,128,.15);
+    color:var(--gold); border-radius:14px; display:inline-block; font-size:12px;
+  }
+
+  /* dynamic 卡片 */
+  .dyn-card {
+    margin:10px 12px; padding:12px; background:var(--panel); border-radius:10px;
+  }
+  .dyn-card .dyn-title { color:var(--ink); font-weight:600; font-size:14px; margin-bottom:6px; }
+  .dyn-card .dyn-thumb { width:100%; height:140px; border-radius:8px; background:linear-gradient(135deg,#3a2a55,#1a1428); margin-bottom:8px; }
+  .dyn-card .dyn-meta { color:var(--ink-3); font-size:11px; }
+
+  /* QR / receipt */
+  .qr-card {
+    margin:24px auto; width:240px; height:240px; background:#fff; border-radius:14px;
+    display:flex; align-items:center; justify-content:center; color:#000; font-size:14px;
+    position:relative;
+  }
+  .qr-card::before {
+    content:""; position:absolute; inset:14px;
+    background:
+      linear-gradient(45deg, transparent 48%, #000 49%, #000 51%, transparent 52%),
+      linear-gradient(135deg, transparent 48%, #000 49%, #000 51%, transparent 52%),
+      repeating-linear-gradient(0deg,#000 0,#000 4px,transparent 4px,transparent 8px),
+      repeating-linear-gradient(90deg,#000 0,#000 4px,transparent 4px,transparent 8px);
+    background-size:100% 100%, 100% 100%, 20px 20px, 20px 20px;
+    border-radius:6px; opacity:.85;
+  }
+
+  /* exchange rate */
+  .rate-row {
+    display:flex; align-items:center; padding:14px; background:var(--panel); margin:8px 12px; border-radius:10px;
+  }
+  .rate-row .flag { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#3b7cd6,#1a1428); display:flex; align-items:center; justify-content:center; font-size:16px; margin-right:12px; }
+  .rate-row .rate-main { flex:1; }
+  .rate-row .rate-main .code { color:var(--ink); font-weight:600; }
+  .rate-row .rate-main .name { color:var(--ink-2); font-size:11px; margin-top:2px; }
+  .rate-row .rate-val { color:var(--gold); font-weight:700; font-size:15px; }
+
+  /* about page */
+  .about-card { margin:16px; padding:20px; background:var(--panel); border-radius:14px; text-align:center; }
+  .about-card .logo-big { font-size:36px; color:var(--gold); font-weight:800; letter-spacing:3px; margin-bottom:8px; }
+  .about-card .sub-en { color:var(--ink-2); font-size:11px; letter-spacing:2px; margin-bottom:14px; }
+  .about-card .version { color:var(--ink-3); font-size:11px; }
+
+  /* gameWallet */
+  .gw-card { margin:14px 12px; padding:16px; background:linear-gradient(135deg,#2a1f3e,#1a1428); border-radius:14px; border:1px solid rgba(236,204,128,.15); }
+  .gw-card .gw-label { color:var(--ink-2); font-size:12px; }
+  .gw-card .gw-val { color:var(--gold); font-weight:700; font-size:22px; margin-top:6px; }
+  .gw-card .gw-action { display:flex; gap:10px; margin-top:14px; }
+  .gw-card .gw-action div {
+    flex:1; padding:10px; text-align:center; background:rgba(255,255,255,.06); border-radius:8px;
+    font-size:13px; cursor:pointer;
+  }
+
+  /* gift cards */
+  .gift-card-l {
+    margin:12px; padding:14px; border-radius:14px;
+    background:linear-gradient(135deg,#3a2a55,#1a1428); position:relative; overflow:hidden;
+  }
+  .gift-card-l .gc-name { color:#fff; font-weight:700; font-size:16px; }
+  .gift-card-l .gc-need { color:var(--gold); font-size:12px; margin-top:6px; }
+  .gift-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 12px; }
+  .gift-card-m {
+    padding:12px; border-radius:12px; background:var(--panel); cursor:pointer;
+  }
+  .gift-card-m .gm-thumb { width:100%; height:80px; background:linear-gradient(135deg,#3b7cd6,#1a1428); border-radius:8px; margin-bottom:8px; }
+  .gift-card-m .gm-name { color:var(--ink); font-size:13px; }
+  .gift-card-m .gm-cost { color:var(--gold); font-size:11px; margin-top:4px; }
+
+  /* slot game grid */
+  .slot-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px 12px; }
+  .slot-item { background:var(--panel); border-radius:10px; padding:10px; cursor:pointer; }
+  .slot-item .si-thumb { width:100%; height:90px; background:linear-gradient(135deg,#ECCC80,#3a2a15); border-radius:8px; margin-bottom:6px; }
+  .slot-item .si-name { color:var(--ink); font-size:12px; font-weight:600; }
+
+  /* small helpers */
+  .filter-row { display:flex; padding:10px 12px; gap:10px; flex-shrink:0; }
+  .filter-row .f {
+    flex:1; padding:8px; background:var(--panel-2); border-radius:8px; text-align:center;
+    color:var(--ink-2); font-size:12px; cursor:pointer; border:1px solid var(--line);
+  }
+  .filter-row .f.active { background:rgba(236,204,128,.15); color:var(--gold); border-color:var(--gold); }
+  .empty {
+    padding:60px 16px; text-align:center; color:var(--ink-3); font-size:13px;
+  }
+  .empty .ico { font-size:48px; opacity:.4; margin-bottom:14px; }
+
+  @media (max-width: 800px) {
+    .stage { flex-direction:column; }
+    .legend-panel-inline { width:100%; max-width:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 顶部 debug-bar ===== -->
+<div class="topbar">
+  <span class="title">VIP电投·钱包端 v0</span>
+  <span class="lang">
+    <button data-lang="zh" class="active">中文</button>
+    <button data-lang="en">EN</button>
+    <button data-lang="kr">한국어</button>
+  </span>
+  <span class="pages" id="pages-nav"></span>
+</div>
+
+<!-- ===== 主舞台 ===== -->
+<div class="stage">
+  <!-- 手机壳 -->
+  <div class="device">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span class="indicators">●●● 📶 🔋</span>
+    </div>
+    <div id="page-container"></div>
+    <div class="tab-bar" id="tab-bar"></div>
+  </div>
+
+  <!-- 紫色业务说明面板（inline） -->
+  <div class="legend-panel-inline">
+    <h2>📘 钱包端 业务说明 / Sammy 测试 Tips <span style="color:var(--gold);font-size:12px;margin-left:8px">v0.3 (2026-05-13)</span></h2>
+
+    <div class="legend">
+      <b>🗂️ 版本变更记录</b>
+      <ul>
+        <li><b>v0.3</b> 2026-05-13 — 范围收窄:<b>仅支持 TRC20 (TRON 链)</b>,BSC/ETH 删;<b>存币金额限正整数</b>(input type=text inputmode=numeric oninput 过滤非数字,无 spinner);Step1 主网/币种字段改只读单值显示;温馨提示按现状项目风格(无 emoji 编号 1-4);按钮挪到温馨提示上面;Step2 删 3 块冗余文字(转账提示/H5提示/倒计时);Step3 加 rejected_pending(账房已拒待退回处理) + rejected(已退回 极简版只 4 项核心信息);Stepper 第 3 步标签按 creditStatus 动态切换;查看链上凭证按钮真实拼接 tronscan URL;<b>订单号规则锁定方案 A</b> STARD+YYYYMMDD+NNNNN(18 位)</li>
+        <li><b>v0.2</b> 2026-05-13 — Step 2「我已转账」跳 Step 3 waiting;Step 3 三态切换;首页余额加「⏸ 审核中」;AML 拒绝走「人工退回」;P0 修 #page-container flex CSS</li>
+        <li><b>v0.1</b> 2026-05-13 — 存币改自动收款流程(对接加密支付网关 notify+save 接口);删上传截图/人工审核;提币流程不变</li>
+        <li><b>v0.0</b> 2026-05-12 — 钱包端初版原型(19 page 45 route + 110 fh + 3 语 + 5 块紫色业务规则)</li>
+      </ul>
+    </div>
+
+    <div class="legend">
+      <b>💡 测试 Tips</b>
+      <ul>
+        <li>顶部 <code>页面按钮</code> 切换全部 19 个 page</li>
+        <li>顶部 <code>语言</code> 切换 中 / EN / 한국어（即时刷新所有静态文案）</li>
+        <li>登录页 mock：任意户口号 + 密码 <code>123456</code> 即可（默认已绕过登录直入 home）</li>
+        <li>底部 5 项 tab：首页 / 记录 / 游戏端 / 动态 / 我的</li>
+        <li>字段名带紫色虚线下划即可 hover 查看业务规则</li>
+        <li>「我的」最底部「退出登录」回到 <code>/login</code></li>
+      </ul>
+    </div>
+
+    <div class="legend">
+      <b>🎯 关键交互入口</b>
+      <ul>
+        <li><code>/home</code> VIP 等级条 + 星币 + 常用 4 宫格 + 余额/交易/开工/电投 Tab</li>
+        <li><code>/selectGame</code> 4 入口：赌场视讯 / 性感真人 / 电子游戏 / MI 电子</li>
+        <li><code>/transfer</code> 户名输入 + 转账金额 + 交易密码（最小 1k）</li>
+        <li><code>/scanCode</code>+<code>/receiptCode</code> 扫码转账 / 个人收款码</li>
+        <li><code>/funds</code> 信贷列表（可用/已用/逾期额度 + 还款列表）</li>
+        <li><code>/currencyAccess</code> USDT 存提 <b>v0.2</b>：存币 3 步(填信息→显示永久地址+「我已转账」→自动入账);Step 3 脏 U 改「挂账等审核」(不上分);底部有 🧪 演示按钮可切干净/脏 U 场景;提币不变</li>
+        <li><code>/currencyExchange</code> 额度转换（币种对币种）</li>
+        <li><code>/gameWallet</code> 上分/下分 + 交收方案</li>
+        <li><code>/exchangeRate</code> 今日多币种汇率</li>
+        <li><code>/reserveService</code> 预约出码 / 取款 / 加彩</li>
+        <li><code>/record/*</code> 7 类记录（交易/开工/信贷/佣金/下级/电投/下线层级）</li>
+        <li><code>/memberServices</code> 订车 / 订房（星币支付 + 存卡支付）</li>
+        <li><code>/notify</code> 已读/未读/待办 3 Tab；4 类验证待办：转账/取款/打款/游戏</li>
+        <li><code>/userCenter</code>→ 改登录密码/交易密码/授权人/安全设置</li>
+        <li><code>/lottery</code> 幸运抽奖（消耗星币）+ 奖品列表</li>
+      </ul>
+    </div>
+
+    <div class="legend">
+      <b>📋 业务规则（核心术语）</b>
+      <ul>
+        <li><b>电投</b>：会员通过钱包电话/线上下注，由顶代/枪手代为下注的传统模式</li>
+        <li><b>转码 / 转码数</b>：开工期间累计有效投注（决定佣金）</li>
+        <li><b>上下数</b>：开工净输赢，A 数 + B 数（M/C 双账户）</li>
+        <li><b>信贷 / Marker（M）</b>：会员签 M 借款，需在到期前还款，否则计罚息</li>
+        <li><b>佣金</b>：基于转码量按占成比 % 结算（即出 / 月结）</li>
+        <li><b>星币</b>：转码奖励/服务消费/签到/电投转码累积；到期清空；可兑换或抽奖</li>
+        <li><b>VIP 等级</b>：VIP（一般户）/ VVIP（股东户）→ auth_type</li>
+        <li><b>授权人</b>：会员可授权他人代登录代操作（authorizer）</li>
+        <li><b>收款码</b>：会员专属 QR 收款，扫码转账即时到账</li>
+        <li><b>订务（memberServices）</b>：订车 / 订房，星币支付 或 存卡支付</li>
+        <li><b>交收方案</b>：上下分时选择即出 / 月结 / 公司额度 / 临时额度等</li>
+        <li><b>账号体系</b>（Sammy 2026-05-12 拍板）：账房（工作人员）在户口管理里创建会员户口 → 会员用<b>户口号 + 密码</b>直接登录钱包；<b>钱包端无注册入口</b>（不允许会员自助开户）</li>
+        <li><b>跨端协作</b>：钱包是 <b>C 端会员自助</b>，账房（账户管理+商品配置）创建户口、配置礼品/抽奖/签到等钱包 APP 内容；代理(B)/总控(S) 不在本端展示</li>
+        <li><b>礼品 SKU / 抽奖奖品</b>：由账房 <code>/walletApp/giftManagement</code> + <code>/walletApp/luckyManagement</code> 配置；钱包端只展示，星币消耗值由账房定，钱包不写死</li>
+        <li><b>USDT 自动收款 (v0.1+)</b>：网关 1:1 自动分配地址(同户口同链永久绑定);链上到账后网关 <code>POST /api/pay/on-chain/notify</code> 推送 → 系统幂等(按 txId)上分;无需上传截图/人工审核;<b>本轮仅支持 TRC20 (TRON 链) × USDT,金额限整数</b>;BSC/ETH/USDC 暂未启用</li>
+        <li><b>存币订单号规则 (Sammy 2026-05-13 拍板,方案 A)</b>：<code>STARD2026051300001</code>(18 位)= 业务前缀 <code>STARD</code>(STAR Deposit)+ 日期 <code>YYYYMMDD</code>(8 位)+ 当日序号 <code>NNNNN</code>(5 位 00001~99999,每日 0 点重置);按日聚合直接 <code>LIKE 'STARD20260513%'</code>。<b>提币订单号规则本轮不动</b>(等提币改自动后再定)</li>
+        <li><b>AML 脏 U 挂账 (v0.2)</b>：网关 <code>/notifyAml(isAML=true)</code> 推送时,该笔 <b>不上分 暂挂账</b>;账房在「USDT 存提币审核 → 存币 Tab → 人工」队列处理 → ① <b>通过</b> 立即入账 / ② <b>拒绝</b> 工作人员链上人工退回到会员原转出地址(预计 24-48h);会员可在「⏸ 审核中入款」看挂账金额</li>
+        <li><b>H5 自动状态更新 (v0.2)</b>：Step 2 页面通过 <code>visibilitychange</code> 事件,用户切到币安/OKX 转账后回到 STAR VIP 时自动 check 一次;后端独立处理 notify,即使用户关掉浏览器,下次打开会通过余额变化+通知中心感知</li>
+        <li><b>提币流程 (本轮不变)</b>：仍走 <code>POST /api/pwa/usdtApply/{withdraw,update,cancel}</code> 三步;账房「USDT 存提币审核 → 提币 Tab」人工通过后链上转账;等提币接口文档</li>
+      </ul>
+    </div>
+
+    <div class="legend">
+      <b>🧪 建议测试路径（7 步）</b>
+      <ul>
+        <li>1. <code>/login</code> → mock 登录</li>
+        <li>2. <code>/home</code> 查 VIP 等级 + 星币 + 切换余额/交易/开工 Tab</li>
+        <li>3. 点击 4 宫格 <code>转账</code> → <code>/transfer</code> 填表（金额最小 1k）</li>
+        <li>4. <code>/funds</code> 看信贷额度（可用/已用/逾期）+ 还款列表</li>
+        <li>5. <code>/reserveService</code> 选 出码 → <code>/codeOut</code> 填出码人信息</li>
+        <li>6. <code>/notify</code> 看待办 → 点击「去验证」进入验证详情</li>
+        <li>7. <code>/userCenter</code> → 改密码 / 我的授权人 / 安全设置</li>
+      </ul>
+    </div>
+
+    <div class="legend">
+      <b>📂 关联文档</b>
+      <ul>
+        <li>前端代码：<code>/Users/jiuyishaonvdemeng/Desktop/VIP钱包/前端代码/src/</code></li>
+        <li>路由清单：<code>src/router/index.tsx</code>（19 个核心 page）</li>
+        <li>i18n：<code>src/locales/{zh,en,kr}/{menu,app,record,card,form,message}.json</code></li>
+        <li>API：<code>src/api/{funds,transfer,activity,...}.ts</code></li>
+        <li>三端关系：<code>memory/project_diantou_three_ends.md</code></li>
+        <li>本轮范围：<code>memory/project_vip_diantou_scope.md</code></li>
+        <li>钱包 PRD / 变更清单：（待 Sammy 确认是否开 doc）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ===== i18n / page registry / 主逻辑 ===== -->
+<script>
+/* ============================================================
+   i18n（中 / EN / 한국어）- 从 src/locales 抽取
+   ============================================================ */
+const I18N = {
+  zh: {
+    // menu.title
+    login:"登录", home:"首页", selectGame:"游戏中心",
+    liveCasino:"赌场视讯", sexyLiveDealer:"性感真人", slotGames:"电子游戏", miSlotCurrency:"MI 电子",
+    transfer:"普通转账", scanCode:"扫码转账", receiptCode:"收款码",
+    funds:"信贷", fundsRecordDetail:"信贷详情",
+    currencyAccess:"存提货币", currencyExchange:"额度转换",
+    gameWallet:"游戏钱包", exchangeRate:"今日汇率",
+    reserveService:"预约服务", codeOut:"预约出码", withdrawal:"预约取款", reserveRecord:"预约记录",
+    record:"记录", startWorkRecord:"开工记录", transactionRecord:"交易记录",
+    creditRecord:"信贷记录", commissionRecord:"佣金记录", subordinateRecord:"下级开工",
+    gameRecord:"电投场次记录", downLineReport:"下线层级报表",
+    memberServices:"订务服务", bookCar:"预约订车", bookHotel:"预约订房",
+    notify:"消息", dynamic:"动态",
+    userCenter:"个人中心", password:"修改登录密码", payPassword:"修改交易密码",
+    authorizer:"我的授权人", about:"关于我们", starCoinDetail:"星币明细", giftRedemption:"礼品兑换",
+    safeSetting:"安全设置", lottery:"幸运抽奖", prizeList:"奖品列表",
+    serviceCenter:"服务热线", more:"更多服务",
+    // tab
+    tab_home:"首页", tab_record:"记录", tab_game:"游戏端", tab_dynamic:"动态", tab_my:"我的",
+    // home tabs
+    balance:"户口余额", transaction:"交易记录", start:"开工记录", game:"电投场次",
+    // misc
+    transferAmount:"转账金额", payee:"收款人", coin:"币种", remark:"备注", payPwd:"交易密码",
+    allServices:"全部服务", commonServices:"常用服务", noData:"暂无数据",
+    available:"可用", lumpSum:"总额", freeze:"冻结",
+    accountNo:"户口号", accountName:"户口名",
+    VIP:"VIP", VVIP:"VVIP",
+    starCoin:"星币", commission:"佣金", subscription:"订务", debit:"借贷", checksum:"查数",
+    loginPwd:"登录密码", switchLanguage:"切换语言", logout:"退出登录",
+    aboutUs:"关于我们", myAuthorizer:"我的授权人",
+    confirm:"确认", cancel:"取消", submit:"提交", next:"下一步",
+    nav_agent:"代理端", nav_game:"游戏端",
+    bookAVenue:"预约场馆", codeAmount:"出码金额", codeType:"出码类型", accountedFor:"占成",
+    withdrawalAmount:"取款金额", phoneNumber:"手机号", reserveDate:"预约时间",
+    walletAddress:"钱包地址", network:"主网类型", commissionFee:"手续费",
+    upDownCount:"上下数", numberConversions:"转码数",
+    availableAmount:"可用额度", usedAmount:"已用额度", expiredAmount:"逾期额度",
+    sweepstakesNow:"立即抽奖", consume:"消耗",
+    pendingPwdVerify:"账房交易密码验证", toVerify:"去验证",
+    casino_live:"赌场视讯", real_people:"真人", digital_entertainment:"电子娱乐", mi_slot:"MI 电子娱乐",
+    appName:"千金汇", brand:"STAR VIP GAME"
+  },
+  en: {
+    login:"Login", home:"Home", selectGame:"Game Center",
+    liveCasino:"Live Casino", sexyLiveDealer:"Sexy Live", slotGames:"Slot Games", miSlotCurrency:"MI Slots",
+    transfer:"Normal Transfer", scanCode:"Scan Transfer", receiptCode:"Receipt Code",
+    funds:"Marker", fundsRecordDetail:"Marker Details",
+    currencyAccess:"Crypto C/W", currencyExchange:"Balance Conv.",
+    gameWallet:"Game Wallet", exchangeRate:"FX Rate",
+    reserveService:"Reservation", codeOut:"Game REZ", withdrawal:"W/D REZ", reserveRecord:"REZ Records",
+    record:"Records", startWorkRecord:"Game RECs", transactionRecord:"Trans RECs",
+    creditRecord:"M RECs", commissionRecord:"Comm. RECs", subordinateRecord:"Sub Game RECs",
+    gameRecord:"E-Bet Records", downLineReport:"Sub-Account",
+    memberServices:"REZ Services", bookCar:"Car Booking", bookHotel:"Room Booking",
+    notify:"Messages", dynamic:"Trending",
+    userCenter:"Personal", password:"Login Pwd", payPassword:"Pay Pwd",
+    authorizer:"My Authorizer", about:"About", starCoinDetail:"Star Coin", giftRedemption:"Rewards",
+    safeSetting:"Security", lottery:"Lucky Draw", prizeList:"Prize List",
+    serviceCenter:"Hotline", more:"More",
+    tab_home:"HOME", tab_record:"Record", tab_game:"Game", tab_dynamic:"Trending", tab_my:"My",
+    balance:"A/C BAL", transaction:"Trans RECs", start:"Game RECs", game:"E-Bet",
+    transferAmount:"Amount", payee:"Payee", coin:"Currency", remark:"Remark", payPwd:"Pay Pwd",
+    allServices:"All Services", commonServices:"Common", noData:"No data",
+    available:"Available", lumpSum:"Total", freeze:"Frozen",
+    accountNo:"Acc No.", accountName:"Acc Name",
+    VIP:"VIP", VVIP:"VVIP",
+    starCoin:"Star Coin", commission:"Commission", subscription:"REZ SVC", debit:"Debit", checksum:"Check",
+    loginPwd:"Login Pwd", switchLanguage:"Language", logout:"Logout",
+    aboutUs:"About Us", myAuthorizer:"Authorizer",
+    confirm:"Confirm", cancel:"Cancel", submit:"Submit", next:"Next",
+    nav_agent:"Agent", nav_game:"Game",
+    bookAVenue:"Venue", codeAmount:"Code Amount", codeType:"Code Type", accountedFor:"Share %",
+    withdrawalAmount:"W/D Amount", phoneNumber:"Phone", reserveDate:"REZ Time",
+    walletAddress:"Wallet Addr", network:"Network", commissionFee:"Fee",
+    upDownCount:"U/D Count", numberConversions:"Conversions",
+    availableAmount:"Available", usedAmount:"Used", expiredAmount:"Overdue",
+    sweepstakesNow:"Draw Now", consume:"Cost",
+    pendingPwdVerify:"Cashier Pwd Verify", toVerify:"Verify",
+    casino_live:"Live Casino", real_people:"Live", digital_entertainment:"Slot", mi_slot:"MI Slot",
+    appName:"STAR VIP", brand:"STAR VIP GAME"
+  },
+  kr: {
+    login:"로그인", home:"홈", selectGame:"게임 센터",
+    liveCasino:"카지노 라이브", sexyLiveDealer:"섹시 딜러", slotGames:"전자 게임", miSlotCurrency:"MI 슬롯",
+    transfer:"계좌이체", scanCode:"코드스캔", receiptCode:"QR코드",
+    funds:"크레딧", fundsRecordDetail:"크레딧내역",
+    currencyAccess:"USDT입출금", currencyExchange:"화폐변경",
+    gameWallet:"온라인지갑", exchangeRate:"환율",
+    reserveService:"예약", codeOut:"바인예약", withdrawal:"출금예약", reserveRecord:"예약내역",
+    record:"조회", startWorkRecord:"게임내역", transactionRecord:"거래내역",
+    creditRecord:"크레딧내역", commissionRecord:"커미션내역", subordinateRecord:"하위게임내역",
+    gameRecord:"온라인 게임내역", downLineReport:"하위계정 보고서",
+    memberServices:"예약 서비스", bookCar:"차량 예약", bookHotel:"방 예약",
+    notify:"소식", dynamic:"소식",
+    userCenter:"마이페이지", password:"로그인 암호 변경", payPassword:"캐셔 비밀번호 변경",
+    authorizer:"권한자", about:"정보", starCoinDetail:"코인내역", giftRedemption:"코인교환",
+    safeSetting:"보안 설정", lottery:"행운 추첨", prizeList:"경품 목록",
+    serviceCenter:"핫라인", more:"더 많은 서비스",
+    tab_home:"홈", tab_record:"내역", tab_game:"게임", tab_dynamic:"소식", tab_my:"My",
+    balance:"잔액", transaction:"거래내역", start:"게임내역", game:"온라인 게임내역",
+    transferAmount:"이체금액", payee:"수취인", coin:"화폐", remark:"비고", payPwd:"캐셔 비밀번호",
+    allServices:"모든 서비스", commonServices:"일반 서비스", noData:"데이터 없음",
+    available:"사용가능", lumpSum:"합계", freeze:"동결",
+    accountNo:"계정번호", accountName:"계정명",
+    VIP:"VIP", VVIP:"VVIP",
+    starCoin:"코인", commission:"커미션", subscription:"예약", debit:"대출", checksum:"조회",
+    loginPwd:"로그인 비밀번호", switchLanguage:"언어변경", logout:"로그아웃",
+    aboutUs:"정보", myAuthorizer:"권한자",
+    confirm:"확인", cancel:"취소", submit:"제출", next:"다음",
+    nav_agent:"에이전트", nav_game:"게임",
+    bookAVenue:"예약장소", codeAmount:"바인금액", codeType:"바인유형", accountedFor:"비율",
+    withdrawalAmount:"출금금액", phoneNumber:"전화", reserveDate:"예약시간",
+    walletAddress:"지갑주소", network:"네트워크", commissionFee:"수수료",
+    upDownCount:"입출수", numberConversions:"전환수",
+    availableAmount:"사용가능", usedAmount:"사용됨", expiredAmount:"연체",
+    sweepstakesNow:"즉시추첨", consume:"소비",
+    pendingPwdVerify:"캐셔 비밀번호 확인", toVerify:"확인",
+    casino_live:"카지노 라이브", real_people:"라이브", digital_entertainment:"슬롯", mi_slot:"MI 슬롯",
+    appName:"STAR VIP", brand:"STAR VIP GAME"
+  }
+};
+
+let currentLang = "zh";
+function t(key){ return (I18N[currentLang] && I18N[currentLang][key]) || I18N.zh[key] || key; }
+
+/* ============================================================
+   页面注册表
+   ============================================================ */
+const PAGES = [
+  { key:"login",            route:"/login",                          title:"login",            tab:null },
+  { key:"home",             route:"/home",                           title:"home",             tab:"home" },
+  { key:"selectGame",       route:"/selectGame",                     title:"selectGame",       tab:"game" },
+  { key:"liveCasino",       route:"/liveCasino",                     title:"liveCasino",       tab:"game" },
+  { key:"sexyLiveDealer",   route:"/sexyLiveDealer",                 title:"sexyLiveDealer",   tab:"game" },
+  { key:"slotGames",        route:"/slotGames",                      title:"slotGames",        tab:"game" },
+  { key:"miSlotCurrency",   route:"/miSlotCurrency",                 title:"miSlotCurrency",   tab:"game" },
+  { key:"transfer",         route:"/transfer",                       title:"transfer" },
+  { key:"scanCode",         route:"/scanCode",                       title:"scanCode" },
+  { key:"receiptCode",      route:"/receiptCode",                    title:"receiptCode" },
+  { key:"funds",            route:"/funds",                          title:"funds" },
+  { key:"fundsRecordDetail",route:"/fundsRecordDetail",              title:"fundsRecordDetail" },
+  { key:"currencyAccess",   route:"/currencyAccess",                 title:"currencyAccess" },
+  { key:"currencyExchange", route:"/currencyExchange",               title:"currencyExchange" },
+  { key:"gameWallet",       route:"/gameWallet",                     title:"gameWallet" },
+  { key:"exchangeRate",     route:"/exchangeRate",                   title:"exchangeRate" },
+  { key:"reserveService",   route:"/reserveService",                 title:"reserveService" },
+  { key:"codeOut",          route:"/codeOut",                        title:"codeOut" },
+  { key:"withdrawal",       route:"/withdrawal",                     title:"withdrawal" },
+  { key:"reserveRecord",    route:"/reserveRecord",                  title:"reserveRecord" },
+  { key:"record",           route:"/record",                         title:"record",           tab:"record" },
+  { key:"startWorkRecord",  route:"/record/startWorkRecord",         title:"startWorkRecord",  tab:"record" },
+  { key:"transactionRecord",route:"/record/transactionRecord",       title:"transactionRecord",tab:"record" },
+  { key:"transactionDetail",route:"/record/transactionDetail",       title:"transactionDetail",tab:"record" },
+  { key:"creditRecord",     route:"/record/creditRecord",            title:"creditRecord",     tab:"record" },
+  { key:"commissionRecord", route:"/record/commissionRecord",        title:"commissionRecord", tab:"record" },
+  { key:"subordinateRecord",route:"/record/subordinateRecord",       title:"subordinateRecord",tab:"record" },
+  { key:"gameRecord",       route:"/record/gameRecord",              title:"gameRecord",       tab:"record" },
+  { key:"downLineReport",   route:"/record/downLineReport",          title:"downLineReport",   tab:"record" },
+  { key:"memberServices",   route:"/memberServices",                 title:"memberServices" },
+  { key:"bookCar",          route:"/memberServices/bookCar",         title:"bookCar" },
+  { key:"bookHotel",        route:"/memberServices/bookHotel",       title:"bookHotel" },
+  { key:"notify",           route:"/notify",                         title:"notify" },
+  { key:"dynamic",          route:"/dynamic",                        title:"dynamic",          tab:"dynamic" },
+  { key:"userCenter",       route:"/userCenter",                     title:"userCenter",       tab:"my" },
+  { key:"password",         route:"/password",                       title:"password",         tab:"my" },
+  { key:"payPassword",      route:"/payPassword",                    title:"payPassword",      tab:"my" },
+  { key:"authorizer",       route:"/authorizer",                     title:"authorizer",       tab:"my" },
+  { key:"about",            route:"/about",                          title:"about",            tab:"my" },
+  { key:"starCoinDetail",   route:"/starCoinDetail",                 title:"starCoinDetail",   tab:"my" },
+  { key:"giftRedemption",   route:"/giftRedemption",                 title:"giftRedemption",   tab:"my" },
+  { key:"safeSetting",      route:"/safeSetting",                    title:"safeSetting",      tab:"my" },
+  { key:"lottery",          route:"/lottery",                        title:"lottery" },
+  { key:"prizeList",        route:"/lottery/prizeList",              title:"prizeList" },
+  { key:"serviceCenter",    route:"/serviceCenter",                  title:"serviceCenter" },
+  { key:"more",             route:"/more",                           title:"more" }
+];
+
+/* page key -> render function（render 函数返回 HTML string） */
+const RENDERERS = {};
+
+/* ============================================================
+   公共组件函数
+   ============================================================ */
+function navBar(titleKey, opts){
+  opts = opts || {};
+  const back = opts.back !== false;
+  const right = opts.right || '';
+  return `<div class="nav-bar">
+    ${back ? `<span class="back" onclick="goBack()">‹</span>` : '<span style="width:30px"></span>'}
+    <span class="nav-title">${typeof titleKey === 'string' ? t(titleKey) : titleKey}</span>
+    <span class="nav-right">${right}</span>
+  </div>`;
+}
+function fh(text, hint){
+  return `<span class="field-hint" data-hint="${hint.replace(/"/g,'&quot;')}">${text}</span>`;
+}
+function row(opts){
+  return `<div class="row" onclick="${opts.onclick || ''}">
+    <div class="row-ico">${opts.icon || '📋'}</div>
+    <div class="row-main">
+      <div class="row-title">${opts.title}</div>
+      ${opts.sub ? `<div class="row-sub">${opts.sub}</div>` : ''}
+    </div>
+    ${opts.right ? `<div class="row-right">${opts.right}</div>` : ''}
+    <span class="arrow">›</span>
+  </div>`;
+}
+
+/* ============================================================
+   各 page render（19+）
+   ============================================================ */
+
+/* ---------- /login ---------- */
+RENDERERS.login = () => `
+  <div class="page active">
+    <div class="login-bg">
+      <div class="logo">⭐ ${I18N[currentLang].brand}</div>
+      <div class="sub">${currentLang === 'zh' ? '优质好游戏 尽在 STAR VIP' : (currentLang==='en'?'Premium Games Only on STAR VIP':'프리미엄 게임 STAR VIP')}</div>
+      <div class="login-form" style="margin-top:50px">
+        <div class="login-tabs">
+          <span class="t active">${currentLang==='zh'?'密码登录':(currentLang==='en'?'Password':'비밀번호')}</span>
+          <span class="t">${currentLang==='zh'?'验证码登录':(currentLang==='en'?'OTP':'OTP')}</span>
+        </div>
+        <div class="row"><input placeholder="${fhText('accountNoHint')||(currentLang==='zh'?'请输入户口号':'Account No.')}" /></div>
+        <div class="row"><input type="password" placeholder="${currentLang==='zh'?'请输入密码 (mock: 123456)':(currentLang==='en'?'Password (mock: 123456)':'비밀번호 (mock: 123456)')}" /></div>
+        <div class="btn-primary" onclick="goto('home');toast('${currentLang==='zh'?'登录成功':(currentLang==='en'?'Login success':'로그인 성공')}')">${t('login')}</div>
+        <div style="text-align:center;color:var(--gold);font-size:12px;margin-top:18px">${currentLang==='zh'?'授权人登录':(currentLang==='en'?'Authorizer login':'권한자 로그인')}</div>
+        <div style="text-align:center;color:var(--ink-3);font-size:11px;margin-top:22px;line-height:1.6">
+          ${currentLang==='zh'?'当您遇到任何问题或疑惑 请随时联系我们':(currentLang==='en'?'Contact us anytime if you have questions':'문제가 있으시면 언제든지 문의하세요')}<br/>
+          <span style="color:var(--gold)">📞 ${currentLang==='zh'?'人工客服':(currentLang==='en'?'Live Support':'고객센터')}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+function fhText(k){ return ''; }
+
+/* ---------- /home ---------- */
+RENDERERS.home = () => `
+  <div class="page active">
+    <div class="home-header">
+      <div class="vip-banner">
+        <span class="vip-lv">VIP</span>
+        <span style="color:#fff;font-size:13px;font-weight:600">${fh('SVG88888', '户口号 member_code — 会员在 STAR VIP GAME 系统内的唯一标识。由账房（工作人员）在户口管理里创建并下发给会员；会员用此户口号 + 密码登录钱包。钱包端无注册入口（Sammy 2026-05-12 拍板）')}</span>
+        <span class="star">⭐</span>
+        <span class="star-num">${fh('1888', '星币 xing_num — 累积来源：转码奖励 / 电投转码 / 服务消费 / 每日签到；到期清空；可在礼品兑换/幸运抽奖消耗')}</span>
+      </div>
+      <div class="icons">
+        <div class="ic" onclick="toast('${currentLang==='zh'?'打开客服':(currentLang==='en'?'Customer':'고객')}')">💬</div>
+        <div class="ic" onclick="goto('scanCode')">📷</div>
+        <div class="ic" onclick="goto('notify')">🔔<span class="dot">3</span></div>
+      </div>
+    </div>
+
+    <div class="marquee">
+      <span class="ico">📣</span>
+      <span class="text">${currentLang==='zh'?'欢迎来到 STAR VIP GAME｜系统于每日 04:00-04:30 维护':(currentLang==='en'?'Welcome to STAR VIP GAME | Daily maintenance 04:00-04:30':'STAR VIP GAME에 오신 것을 환영합니다')}</span>
+    </div>
+
+    <div style="overflow-y:auto;flex:1;padding-bottom:70px">
+      <div class="often-nav">
+        ${[
+          {icon:'💸', label:'transfer', go:'transfer'},
+          {icon:'📅', label:'reserveService', go:'reserveService'},
+          {icon:'📲', label:'receiptCode', go:'receiptCode'},
+          {icon:'💰', label:'funds', go:'funds'},
+          {icon:'💱', label:'exchangeRate', go:'exchangeRate'},
+          {icon:'📷', label:'scanCode', go:'scanCode'},
+          {icon:'🎲', label:'gameWallet', go:'gameWallet'},
+          {icon:'⋯', label:'more', go:'more'}
+        ].map(o=>`
+          <div class="nav-item" onclick="goto('${o.go}')">
+            <div class="nav-icon">${o.icon}</div>
+            <div class="nav-label">${t(o.label)}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="h-tabs">
+        <div class="tab active" data-htab="balance">${t('balance')}</div>
+        <div class="tab" data-htab="transaction">${t('transaction')}</div>
+        <div class="tab" data-htab="start">${t('start')}</div>
+        <div class="tab" data-htab="game">${t('game')}</div>
+      </div>
+
+      <div id="home-tab-content">
+        ${homeBalanceContent()}
+      </div>
+    </div>
+  </div>
+`;
+
+function homeBalanceContent(){
+  return `
+    <div class="rec-card">
+      <div class="rec-row h">USDT ${currentLang==='zh'?'账户':(currentLang==='en'?'Account':'계정')} <span class="badge warn" style="margin-left:6px">${currentLang==='zh'?'有审核中':'has pending'}</span></div>
+      <div class="rec-row"><span>${fh(t('available'),'可用余额 available — 可即时下注/上分/转账/提币;脏 U 挂账金额不计入此项')}</span><span class="amount">1,200.00 USDT</span></div>
+      <div class="rec-row"><span>${fh(t('freeze'),'冻结金额 freeze — 业务流程冻结(如签 M 借款占用额度);误判可由账房解冻')}</span><span class="v">0.00 USDT</span></div>
+      <div class="rec-row"><span>${fh(t('lumpSum'),'余额合计 = available + freeze;挂账金额不计入')}</span><span class="v">1,200.00 USDT</span></div>
+      <div class="rec-row" style="background:rgba(232,189,112,.06);margin:-6px -10px 0;padding:8px 10px;border-top:1px dashed rgba(232,189,112,.25);border-radius:0 0 8px 8px"><span style="color:#e8bd70">${fh(currentLang==='zh'?'⏸ 审核中':(currentLang==='en'?'⏸ Reviewing':'⏸ 심사중'),'pendingAmlAmount — 网关 notifyAml(isAML=true) 推送的脏 U 挂账金额;暂未入账,等账房审核;通过→入账;拒绝→工作人员链上人工退回;不计入余额合计')}</span><span style="color:#e8bd70" onclick="goto('transactionRecord')">100.00 USDT (1 ${currentLang==='zh'?'笔':''}) ›</span></div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-row h">USD ${currentLang==='zh'?'账户':'Account'}</div>
+      <div class="rec-row"><span>${t('available')}</span><span class="amount">$ 12,500.00</span></div>
+      <div class="rec-row"><span>${t('freeze')}</span><span class="v">$ 1,200.00</span></div>
+      <div class="rec-row"><span>${t('lumpSum')}</span><span class="v">$ 13,700.00</span></div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-row h">HKD ${currentLang==='zh'?'账户':'Account'}</div>
+      <div class="rec-row"><span>${t('available')}</span><span class="amount">HK$ 88,000.00</span></div>
+      <div class="rec-row"><span>${t('freeze')}</span><span class="v">HK$ 0.00</span></div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-row h">PHP ${currentLang==='zh'?'账户':'Account'}</div>
+      <div class="rec-row"><span>${t('available')}</span><span class="amount">₱ 0.00</span></div>
+    </div>
+  `;
+}
+function homeTransactionContent(){
+  return `
+    <div class="rec-card">
+      <div class="rec-row h"><span>${fh('转账入款','transferDeposit — 收款人是当前会员')}</span><span class="badge ok">${currentLang==='zh'?'成功':'OK'}</span></div>
+      <div class="rec-row"><span>${fh(t('transferAmount'),'转账金额 amount — 单笔转账涉及的金额；规则：最小转账金额为 1k')}</span><span class="amount">+10,000.00</span></div>
+      <div class="rec-row"><span>${fh(t('coin'),'币种 currency — 会员持仓币种（如 USD/HKD/PHP/USDT），与户口绑定')}</span><span class="v">HKD</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'汇款人':'Sender'}</span><span class="v">SVG88001 / 张三</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'交易时间':'Time'}</span><span class="v">2026-05-12 10:32</span></div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-row h"><span>转账出款</span><span class="badge ok">${currentLang==='zh'?'成功':'OK'}</span></div>
+      <div class="rec-row"><span>${t('transferAmount')}</span><span class="amount">-5,000.00</span></div>
+      <div class="rec-row"><span>${t('payee')}</span><span class="v">SVG88002 / 李四</span></div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-row h"><span>${fh('电投投注','betBetting — 会员通过钱包下注的累计金额')}</span><span class="badge pending">${currentLang==='zh'?'已结算':'Settled'}</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'场次编号':'Session'}</span><span class="v">EBT202605120001</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'结算金额':'Settle'}</span><span class="amount">+2,800.00</span></div>
+    </div>
+  `;
+}
+function homeStartContent(){
+  return `
+    <div class="rec-card">
+      <div class="rec-row h"><span>${fh('开工场馆','startVenue — 会员本次开工所在赌场')}</span><span class="badge ok">${currentLang==='zh'?'已收工':'Closed'}</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'开工场馆':'Venue'}</span><span class="v">Solaire VIP</span></div>
+      <div class="rec-row"><span>${fh('开工类型','startType — 普通 / 营运')}</span><span class="v">${currentLang==='zh'?'普通':'Ordinary'}</span></div>
+      <div class="rec-row"><span>${fh('开工币种','startCurrency — 该场开工使用的币种')}</span><span class="v">HKD</span></div>
+      <div class="rec-row"><span>${fh(t('numberConversions'),'转码数 numberConversions — 开工期间累计有效投注，决定佣金；钱包端展示 + 代理端复核')}</span><span class="amount">1,250,000</span></div>
+      <div class="rec-row"><span>${fh(t('upDownCount'),'上下数 upDownCount — 开工净输赢，A 数 + B 数（M/C 双账户结算）；负数=会员赢')}</span><span class="v" style="color:#37a06b">-280,000</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'开工时间':'Start'}</span><span class="v">05-11 20:00</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'收工时间':'End'}</span><span class="v">05-12 03:20</span></div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-row h"><span>Newport VIP</span><span class="badge pending">${currentLang==='zh'?'未收工':'Open'}</span></div>
+      <div class="rec-row"><span>${t('numberConversions')}</span><span class="amount">580,000</span></div>
+      <div class="rec-row"><span>${t('upDownCount')}</span><span class="v" style="color:#d6423b">+120,000</span></div>
+    </div>
+  `;
+}
+function homeGameContent(){
+  return `
+    <div class="rec-card">
+      <div class="rec-row h"><span>${fh('场次编号','sessionNumber — 每个电投场次唯一编号')}</span><span class="badge ok">${currentLang==='zh'?'已结算':'Settled'}</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'场次编号':'Session'}</span><span class="v">EBT202605120001</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'操作场馆':'Venue'}</span><span class="v">Solaire VIP - 厅 A</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'投注金额':'Bet'}</span><span class="v">85,000</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'派彩':'Payout'}</span><span class="amount">+12,000</span></div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-row h"><span>EBT202605110023</span><span class="badge pending">${currentLang==='zh'?'未结算':'Pending'}</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'电投小费':'Tip'}</span><span class="v">500</span></div>
+    </div>
+  `;
+}
+
+/* ---------- /selectGame ---------- */
+RENDERERS.selectGame = () => `
+  <div class="page active">
+    ${navBar('selectGame', {back:false})}
+    <div class="body-scroll">
+      <div class="game-card casino" onclick="goto('liveCasino')">
+        <div class="gc-title">${t('casino_live')}</div>
+        <div class="gc-sub">${currentLang==='zh'?'实体赌场 品牌保障 在线娱乐 爽赢无忧':(currentLang==='en'?'Brick-and-mortar casino, online gaming':'실제 카지노 온라인 게임')}</div>
+        <div class="gc-enter">${currentLang==='zh'?'进入':(currentLang==='en'?'Enter':'입장')} ›</div>
+      </div>
+      <div class="game-card sexy" onclick="goto('sexyLiveDealer')">
+        <div class="gc-title">${t('real_people')}</div>
+        <div class="gc-sub">${currentLang==='zh'?'性感主播 极致诱惑 真人互动 纵享激情':'Seductive hosts, live interaction'}</div>
+        <div class="gc-enter">${currentLang==='zh'?'进入':'Enter'} ›</div>
+      </div>
+      <div class="game-card slot" onclick="goto('slotGames')">
+        <div class="gc-title">${t('digital_entertainment')}</div>
+        <div class="gc-sub">${currentLang==='zh'?'多种玩法 实时下注 海量玩法 最佳选择':'Diverse games, endless options'}</div>
+        <div class="gc-enter">${currentLang==='zh'?'进入':'Enter'} ›</div>
+      </div>
+      <div class="game-card mi" onclick="goto('miSlotCurrency')">
+        <div class="gc-title">${t('mi_slot')}</div>
+        <div class="gc-sub">${currentLang==='zh'?'梦想成真 幸运降临 财富满门 心想事成':'Dreams come true'}</div>
+        <div class="gc-enter">${currentLang==='zh'?'进入':'Enter'} ›</div>
+      </div>
+    </div>
+  </div>
+`;
+
+/* ---------- /liveCasino & /sexyLiveDealer (列表) ---------- */
+RENDERERS.liveCasino = () => gameVenueList('liveCasino');
+RENDERERS.sexyLiveDealer = () => gameVenueList('sexyLiveDealer');
+function gameVenueList(key){
+  const venues = [
+    {name:'Solaire VIP', sub:'Manila · 实景厅', tag:'HOT'},
+    {name:'Newport VIP', sub:'Manila · 新闸口', tag:''},
+    {name:'OneKey VIP', sub:'Cagayan · 一键厅', tag:''},
+    {name:'Cagayan VIP', sub:'Cagayan · 高端厅', tag:''}
+  ];
+  return `
+    <div class="page active">
+      ${navBar(key)}
+      <div class="body-scroll">
+        ${venues.map(v=>`
+          <div class="row" onclick="toast('${v.name}')">
+            <div class="row-ico">🎰</div>
+            <div class="row-main">
+              <div class="row-title">${v.name} ${v.tag?`<span style="color:var(--red);font-size:10px;margin-left:6px">${v.tag}</span>`:''}</div>
+              <div class="row-sub">${v.sub}</div>
+            </div>
+            <span class="arrow">›</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- /slotGames ---------- */
+RENDERERS.slotGames = () => `
+  <div class="page active">
+    ${navBar('slotGames')}
+    <div class="body-scroll">
+      <div class="slot-grid">
+        ${['Fortune Tiger','Golden Buddha','Lucky Dragon','Money Wave','Mega Joker','Super 7'].map(n=>`
+          <div class="slot-item" onclick="toast('Launch ${n}')">
+            <div class="si-thumb"></div>
+            <div class="si-name">${n}</div>
+            <div style="color:var(--ink-3);font-size:10px;margin-top:2px">${currentLang==='zh'?'立即体验':'Play'}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+`;
+
+/* ---------- /miSlotCurrency ---------- */
+RENDERERS.miSlotCurrency = () => `
+  <div class="page active">
+    ${navBar('miSlotCurrency')}
+    <div class="body-scroll">
+      <div style="padding:14px 12px;color:var(--ink-2);font-size:12px">${currentLang==='zh'?'选择 MI 电子的开工币种':'Select currency for MI Slots'}</div>
+      ${[
+        {code:'USD', name:'美元', bal:'12,500.00'},
+        {code:'HKD', name:'港币', bal:'88,000.00'},
+        {code:'PHP', name:'菲律宾比索', bal:'0.00'},
+        {code:'USDT', name:'泰达币', bal:'1,200.00'}
+      ].map(c=>`
+        <div class="row" onclick="toast('Enter MI Slot · ${c.code}')">
+          <div class="row-ico">💱</div>
+          <div class="row-main">
+            <div class="row-title">${c.code} · ${c.name}</div>
+            <div class="row-sub">${fh(t('available'),'可用余额 available — 进入 MI 电子前需先从钱包上分到游戏钱包')}: ${c.bal}</div>
+          </div>
+          <span class="arrow">›</span>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+`;
+
+/* ---------- /transfer ---------- */
+RENDERERS.transfer = () => `
+  <div class="page active">
+    ${navBar('transfer')}
+    <div class="body-scroll">
+      <div class="info-tip">${currentLang==='zh'?'最小转账金额为 1k（form.transfer.minTransferAmount）':'Min transfer amount: 1k'}</div>
+      <div class="form-card">
+        <div class="form-item">
+          <span class="label">${fh(t('payee'),'收款人 payee — 通过户口号或户口名搜索，必须为系统内已存在的会员户口')}</span>
+          <span style="flex:1;text-align:right;color:var(--gold);cursor:pointer" onclick="goto('reserveService');toast('选择交易人')">SVG88002 / 李四 ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('coin'),'转账币种 currency — 收发双方必须同币种；不同币种需先用「额度转换」')}</span>
+          <span class="ipt" style="text-align:right">HKD</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('transferAmount'),'转账金额 amount — 最小 1k，整数；规则 transfer.minTransferAmount')}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'请输入转账金额':'Enter amount'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('remark'),'备注 remark — 可选，方便对账（如「还款」「茶水费」等）')}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'请输入备注':'Remark'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('payPwd'),'交易密码 pwd — 6 位数字；与登录密码不同；忘记可联系账房热线重置；规则 changePassword.passwordNumber')}</span>
+          <input class="ipt" type="password" placeholder="${currentLang==='zh'?'6 位交易密码':'6-digit pay pwd'}" />
+        </div>
+      </div>
+      <div class="btn-primary" onclick="toast('${currentLang==='zh'?'转账成功':'Transfer success'}');setTimeout(()=>goto('home'),500)">${t('confirm')}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /scanCode ---------- */
+RENDERERS.scanCode = () => `
+  <div class="page active">
+    ${navBar('scanCode')}
+    <div class="body-scroll" style="text-align:center">
+      <div style="margin:60px auto 30px;width:240px;height:240px;border:2px solid var(--gold);border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--ink-2);position:relative">
+        <div style="position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:scan 2s linear infinite"></div>
+        <div>📷<br/><span style="font-size:11px">${currentLang==='zh'?'对准二维码扫描':'Align QR'}</span></div>
+      </div>
+      <div style="color:var(--ink-2);font-size:12px;margin-top:20px">${currentLang==='zh'?'扫一扫 收款码 快捷转账':'Scan receipt code to transfer'}</div>
+      <div class="btn-secondary" onclick="goto('receiptCode')">${currentLang==='zh'?'我的收款码':'My receipt code'}</div>
+      <div class="btn-secondary" onclick="toast('${currentLang==='zh'?'打开相册':'Open album'}')">📷 ${currentLang==='zh'?'相册':'Album'}</div>
+    </div>
+    <style>@keyframes scan{0%{top:0}50%{top:100%}100%{top:0}}</style>
+  </div>
+`;
+
+/* ---------- /receiptCode ---------- */
+RENDERERS.receiptCode = () => `
+  <div class="page active">
+    ${navBar('receiptCode')}
+    <div class="body-scroll" style="text-align:center;padding-top:20px">
+      <div style="color:var(--gold);font-size:14px;font-weight:600">${fh('SVG88888','户口号 member_code — 会员系统内唯一标识')}</div>
+      <div style="color:var(--ink-2);font-size:12px;margin-top:4px">${fh('Sammy Star','户口名 account_name')}</div>
+      <div class="qr-card"></div>
+      <div style="color:var(--ink-2);font-size:12px">${currentLang==='zh'?'专属二维码 快捷交易':'Personal QR code'}</div>
+      <div class="btn-secondary" onclick="toast('${currentLang==='zh'?'已保存到相册':'Saved'}')">${currentLang==='zh'?'保存到相册':'Save'}</div>
+      <div class="btn-secondary" onclick="toast('${currentLang==='zh'?'已复制':'Copied'}')">${currentLang==='zh'?'复制户口号':'Copy account'}</div>
+      <div class="info-tip" style="margin-top:24px;text-align:left">${currentLang==='zh'?'⚠️ 收款码仅限钱包同币种转账；其他会员扫码后输入金额+交易密码即可向您转账':'Same-currency only'}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /funds (信贷列表) ---------- */
+RENDERERS.funds = () => `
+  <div class="page active">
+    ${navBar('funds')}
+    <div class="h-tabs">
+      <div class="tab active">HKD</div>
+      <div class="tab">USD</div>
+      <div class="tab">PHP</div>
+    </div>
+    <div class="body-scroll">
+      <div style="margin:14px 12px;padding:16px;background:linear-gradient(135deg,#2a1f3e,#1a1428);border-radius:14px;border:1px solid rgba(236,204,128,.15)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px">
+          <div>
+            <div style="color:var(--ink-2);font-size:11px">${fh(t('availableAmount'),'可用额度 availableAmount — 会员可签 M 的剩余额度 = 总额 - 已用 - 逾期')}</div>
+            <div style="color:var(--gold);font-size:24px;font-weight:700;margin-top:4px">HK$ 500,000</div>
+          </div>
+          <div style="text-align:right">
+            <div style="color:var(--ink-2);font-size:11px">${fh(t('lumpSum'),'借贷总额 middleEast — 会员可用授信额度总额，由公司/上线/股东额度组成')}</div>
+            <div style="color:#fff;font-size:14px;margin-top:4px">HK$ 1,000,000</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;font-size:11px">
+          <div style="flex:1;padding:8px;background:rgba(255,255,255,.04);border-radius:6px">
+            <div style="color:var(--ink-3)">${fh(t('usedAmount'),'已用额度 usedAmount — 已签 M 未还款金额合计')}</div>
+            <div style="color:#fff;margin-top:4px">HK$ 400,000</div>
+          </div>
+          <div style="flex:1;padding:8px;background:rgba(255,255,255,.04);border-radius:6px">
+            <div style="color:var(--ink-3)">${fh(t('expiredAmount'),'逾期额度 expiredAmount — 已过还款日仍未还款部分；产生罚息')}</div>
+            <div style="color:var(--red);margin-top:4px">HK$ 100,000</div>
+          </div>
+        </div>
+      </div>
+      <div style="color:var(--ink-2);font-size:12px;padding:0 16px;margin:10px 0">${currentLang==='zh'?'待还款列表':'Pending repayment'}</div>
+      ${[
+        {id:'M20260510001',amt:200000,signed:'05-10',expire:'05-25',state:'未逾期'},
+        {id:'M20260505003',amt:100000,signed:'05-05',expire:'05-20',state:'已逾期',days:5},
+        {id:'M20260420001',amt:100000,signed:'04-20',expire:'05-05',state:'已逾期',days:20}
+      ].map(m=>`
+        <div class="rec-card" onclick="goto('fundsRecordDetail')" style="cursor:pointer">
+          <div class="rec-row h"><span>${fh(m.id,'M 单号 MOrderNumber — 每笔签 M 借款唯一编号')}</span>
+            ${m.state==='已逾期'?`<span class="badge warn">${fh('已逾期 '+m.days+'天','逾期 numberOfDaysOverdue — 超过到期日的自然日天数；按天计算罚息')}</span>`
+              :`<span class="badge ok">${currentLang==='zh'?'未逾期':'Not overdue'}</span>`}
+          </div>
+          <div class="rec-row"><span>${fh(t('loanAmount')||'借款金额','借款金额 loanAmount — 会员本次签 M 的本金')}</span><span class="amount">HK$ ${m.amt.toLocaleString()}</span></div>
+          <div class="rec-row"><span>${currentLang==='zh'?'签 M 时间':'Sign Time'}</span><span class="v">${m.signed}</span></div>
+          <div class="rec-row"><span>${currentLang==='zh'?'到期日':'Due'}</span><span class="v">${m.expire}</span></div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+`;
+
+/* ---------- /fundsRecordDetail ---------- */
+RENDERERS.fundsRecordDetail = () => `
+  <div class="page active">
+    ${navBar('fundsRecordDetail')}
+    <div class="body-scroll">
+      <div class="rec-card">
+        <div class="rec-row h"><span>M20260510001</span><span class="badge ok">${currentLang==='zh'?'待还款':'Pending'}</span></div>
+        <div class="rec-row"><span>${fh('签 M 金额','signMAmount — 本次签 M 的本金金额')}</span><span class="amount">HK$ 200,000</span></div>
+        <div class="rec-row"><span>${fh('签单场馆','signingHall — 会员签 M 时所在的赌场')}</span><span class="v">Solaire VIP</span></div>
+        <div class="rec-row"><span>${currentLang==='zh'?'签 M 时间':'Sign Time'}</span><span class="v">2026-05-10 22:30</span></div>
+        <div class="rec-row"><span>${currentLang==='zh'?'到期日':'Due Date'}</span><span class="v">2026-05-25</span></div>
+        <div class="rec-row"><span>${fh('罚息率','unPayRate — 逾期后按日计的罚息百分比，逾期天数 × 本金 × 罚息率 = 罚息')}</span><span class="v">0.1% / ${currentLang==='zh'?'日':'day'}</span></div>
+        <div class="rec-row"><span>${fh('待还罚息','pendingPenInterest — 当前已产生但未还的罚息')}</span><span class="v">HK$ 0</span></div>
+        <div class="rec-row"><span>${fh('总待还款额','totalOutstandingBalance — 本金 + 罚息合计待还')}</span><span class="amount">HK$ 200,000</span></div>
+      </div>
+      <div class="info-tip">${currentLang==='zh'?'到期前请到场馆账房还款；逾期将产生每日罚息':'Repay at venue before due date'}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /currencyAccess (USDT 存提) ----------
+   v0.1 (2026-05-13) 存币改造为「自动收款」流程,对接加密支付网关接口:
+   - 网关 → 商户  POST /api/pay/on-chain/notify + /notifyAml(AML)  HMAC-SHA256
+   - 商户 → 网关  POST /api/third/pay/save(创建/获取地址) check verify
+   - 钱包地址 1:1 自动分配(同户口同链永久绑定)
+   - 删除「上传截图」「人工审核」步骤;链上到账 → notify → 自动入账
+   - AML 推送(isAML=true) → 上分但锁定该笔 → 账房「可疑入款审查」处理
+   - 提币流程不变(等提币接口文档)
+   ---------------------------------------------------------- */
+let caState = { tab:'deposit', depositStep:1, withdrawStep:1, creditStatus:'waiting' /* 2026-05-14 改:订单不再超时,只剩 waiting(等待入账) | success(自动入账) 两态 */ };
+function caSet(patch){ Object.assign(caState, patch); renderPage(); }
+
+/* 拼接区块浏览器 URL — 不依赖接口,前端按 chain 选模板;客户点"查看链上凭证"时调用 */
+function buildExplorerUrl(chain, txId){
+  const t = {
+    TRON: 'https://tronscan.org/#/transaction/' + txId,
+    BSC:  'https://bscscan.com/tx/' + txId,
+    ETH:  'https://etherscan.io/tx/' + txId
+  };
+  return t[chain] || '#';
+}
+function openExplorer(chain, txId){
+  const url = buildExplorerUrl(chain, txId);
+  if(confirm((currentLang==='zh'?'即将在新标签打开链上凭证:\n\n':'Open block explorer:\n\n') + url + (currentLang==='zh'?'\n\n点确定继续':''))) {
+    window.open(url, '_blank');
+  }
+}
+
+RENDERERS.currencyAccess = () => `
+  <div class="page active">
+    ${navBar('currencyAccess')}
+    <div class="h-tabs">
+      <div class="tab ${caState.tab==='deposit'?'active':''}" onclick="caSet({tab:'deposit'})">${currentLang==='zh'?'快捷存币':(currentLang==='en'?'Deposit':'입금')}</div>
+      <div class="tab ${caState.tab==='withdraw'?'active':''}" onclick="caSet({tab:'withdraw'})">${currentLang==='zh'?'快捷提币':(currentLang==='en'?'Withdraw':'출금')}</div>
+    </div>
+    <div class="body-scroll">
+      ${caState.tab==='deposit' ? caDepositContent() : caWithdrawContent()}
+    </div>
+  </div>
+`;
+
+function caStepper(active, steps){
+  return `
+    <div style="display:flex;align-items:flex-start;padding:16px 14px 10px">
+      ${steps.map((s,i)=>{
+        const idx = i+1;
+        const isActive = idx===active;
+        const isDone = idx<active;
+        const bgFill = isDone||isActive ? 'var(--gold)' : 'rgba(255,255,255,.08)';
+        const fgFill = isDone||isActive ? '#1a1428' : 'var(--ink-3)';
+        const labelColor = isDone||isActive ? 'var(--gold)' : 'var(--ink-3)';
+        const lineColor = isDone ? 'var(--gold)' : 'rgba(255,255,255,.1)';
+        return `
+          <div style="flex:1;text-align:center;position:relative">
+            <div style="width:24px;height:24px;border-radius:50%;background:${bgFill};color:${fgFill};margin:0 auto;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">${isDone?'✓':idx}</div>
+            <div style="color:${labelColor};font-size:10px;margin-top:4px;line-height:1.2">${s}</div>
+            ${i<steps.length-1?`<div style="position:absolute;top:11px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;background:${lineColor}"></div>`:''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function caDepositContent(){
+  // 2026-05-14 改:全自动入账后,只剩 1 个页面(地址+二维码+温馨提示);点「我已转账」跳交易记录(预筛选 USDT+本月)
+  return caDepositStep1();
+}
+
+// 2026-05-14 新增:点「我已转账」跳到交易记录页,预筛选 USDT + 本月
+function caJumpToUSDTRecord(){
+  const d = new Date();
+  const month = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  window.txPreset = { ccy:'USDT', month };
+  goto('transactionRecord');
+}
+function caWithdrawContent(){
+  if (caState.withdrawStep===1) return caWithdrawStep1();
+  if (caState.withdrawStep===2) return caWithdrawStep2();
+  return caWithdrawStep3();
+}
+
+// 2026-05-14 改:全自动入账只剩 1 页,caDepositSteps 不再使用(stepper 已从 Step1 移除)
+function caWithdrawSteps(){
+  return currentLang==='zh' ? ['填写信息','信息确认','人工审核'] :
+         currentLang==='en' ? ['Info','Confirm','Auditing'] :
+                              ['정보입력','확인','심사'];
+}
+
+// 2026-05-14 改:全自动入账后,Step1 即唯一页(地址+二维码+温馨提示);删除 stepper(只剩 1 步)
+function caDepositStep1(){
+  const addr = 'TRxBpQ8jkLNm3wYz5Vb4Xs2HfRtPqCgD7Nk';
+  return `
+    <div class="rec-card" style="background:linear-gradient(135deg,#2a1f3e,#1a1428);border:1px solid rgba(236,204,128,.2)">
+      <div style="text-align:center;color:var(--ink-2);font-size:11px;margin-bottom:10px">${fh(currentLang==='zh'?'专属充值地址 (永久绑定)':'Deposit Address (permanent)','depositAddress — 网关 POST /api/third/pay/save 为该户口在该链生成的专属地址;同户口同链下次仍是该地址,绝不会分给其他户口')}</div>
+      <div style="display:flex;justify-content:center;margin-bottom:12px">
+        <div style="width:140px;height:140px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#000;font-size:9px;font-family:monospace;text-align:center;line-height:1.4">▣▣▣ QR ▣▣▣<br/>${addr.slice(0,6)}<br/>...${addr.slice(-4)}</div>
+      </div>
+      <div style="color:var(--gold);font-size:11px;word-break:break-all;text-align:center;line-height:1.5;padding:8px;background:rgba(0,0,0,.3);border-radius:6px;font-family:monospace">${addr}</div>
+      <div onclick="toast('${currentLang==='zh'?'地址已复制':'Copied'}')" style="margin-top:12px;text-align:center;padding:10px;background:rgba(255,255,255,.05);border:1px dashed var(--gold);border-radius:8px;color:var(--gold);cursor:pointer;font-size:13px">${currentLang==='zh'?'📋 复制地址':(currentLang==='en'?'📋 Copy Address':'📋 주소복사')}</div>
+    </div>
+    <div style="padding:14px">
+      <div class="btn-primary" onclick="caJumpToUSDTRecord()">${currentLang==='zh'?'✓ 我已转账':(currentLang==='en'?'✓ I have paid':'✓ 송금완료')}</div>
+    </div>
+    <div style="text-align:center;color:var(--ink-3);font-size:10px;padding:0 14px 8px">
+      ${currentLang==='zh'?'转账完成后点击「我已转账」跳转至交易记录页查看到账(链上确认后自动显示)':'After transfer, click 「I have paid」 to jump to transaction records (auto-appears on confirmation)'}
+    </div>
+    <div class="tips-card">
+      <h4>${currentLang==='zh'?'温馨提示':(currentLang==='en'?'Important Notice':'안내사항')}</h4>
+      ${currentLang==='zh'?`
+      <p>目前仅支持 USDT 存币,您需要确保:</p>
+      <ol>
+        <li><b>主网网络的选择</b>,请您务必使用 TRC20 (TRON 主网) 进行转账,若使用其他网络 (如 BEP20、ERC20),您将无法到账,且可能损失对应资产。</li>
+        <li><b>存币地址的核对</b>,由于区块网络匿名和私密,您需要将 USDT 转入我们为您生成的专属充值地址。请务必仔细核对您的转账地址,一旦转错,您将损失对应资产。</li>
+        <li><b>存币金额建议为整数</b> (如 100、500、1000)。系统按链上实际入款金额<b>自动入账</b>,无需上传截图、无需人工审核、无需等待。</li>
+      </ol>
+      `:(currentLang==='en'?`
+      <p>USDT deposit only. Please ensure:</p>
+      <ol>
+        <li><b>Network</b>: use TRC20 (TRON) only. Other networks (BEP20, ERC20) will cause loss of funds.</li>
+        <li><b>Address</b>: send only to your dedicated address. Wrong address = lost funds, irreversible.</li>
+        <li><b>Integer amount recommended</b> (e.g. 100, 500, 1000). <b>Auto-credited</b> by on-chain amount — no screenshot, no review, no waiting.</li>
+      </ol>
+      `:`
+      <p>USDT 입금만 지원합니다. 다음을 확인해 주세요:</p>
+      <ol>
+        <li><b>네트워크</b>: TRC20 (TRON) 만 사용. 다른 네트워크는 자산 손실 위험.</li>
+        <li><b>주소</b>: 발급된 전용 주소로만 송금. 잘못된 주소는 자산 손실.</li>
+        <li><b>정수 금액 권장</b> (예: 100, 500, 1000). 체인 실제 금액으로 <b>자동 입금</b>, 스크린샷 불필요, 심사 불필요.</li>
+      </ol>
+      `)}
+    </div>
+  `;
+}
+
+// 2026-05-14 改:caDepositStep2 整页删除 — 全自动入账后无需等待页/结果页;点「我已转账」直接跳交易记录
+function _caDepositStep2_REMOVED(){
+  const st = caState.creditStatus || 'waiting';
+
+  let icon, title, sub, badgeCls, badgeText, titleColor;
+  if (st === 'waiting') {
+    icon = '⏳';
+    title = currentLang==='zh' ? '等待入账中...' : (currentLang==='en' ? 'Awaiting Credit...' : '입금 대기중...');
+    sub = currentLang==='zh' ? '请耐心等待,到账后此页自动更新' : 'Please wait, page will update automatically';
+    badgeCls = 'pending'; badgeText = currentLang==='zh' ? '等待入账' : 'Pending';
+    titleColor = '#e8bd70';
+  } else { // success
+    icon = '✅';
+    title = currentLang==='zh' ? '自动入账' : (currentLang==='en' ? 'Credited' : '자동입금');
+    sub = '';
+    badgeCls = 'ok'; badgeText = currentLang==='zh' ? '已入账' : 'Credited';
+    titleColor = 'var(--gold)';
+  }
+  return `
+    ${caStepper(2, caDepositSteps())}
+    <style>
+      @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+      @keyframes ping { 0%{opacity:.3} 50%{opacity:1} 100%{opacity:.3} }
+    </style>
+    <div style="text-align:center;padding:18px 14px 8px">
+      <div style="font-size:56px;${st==='waiting'?'animation:spin 2.5s linear infinite;display:inline-block':''}">${icon}</div>
+      <div style="color:${titleColor};font-size:18px;font-weight:700;margin-top:8px">${title}</div>
+      ${sub?`<div style="color:var(--ink-2);font-size:11px;margin-top:6px;padding:0 20px">${sub}</div>`:''}
+      ${st==='waiting'?`<div style="margin-top:12px;display:inline-flex;gap:6px;align-items:center;color:var(--ink-3);font-size:10px;padding:6px 12px;background:rgba(232,189,112,.08);border-radius:14px"><span style="width:6px;height:6px;background:#37a06b;border-radius:50%;display:inline-block;animation:ping 1.4s infinite"></span> ${currentLang==='zh'?'正在确认到账...':'Confirming...'}</div>`:''}
+    </div>
+    <div class="rec-card">
+      ${st==='waiting'?`<div class="rec-row"><span>${fh(currentLang==='zh'?'入账金额':'Amount','系统等待链上 notify 推送的 amount;到账前显示 - ;会员不输入金额,链上转多少入多少')}</span><span class="v" style="color:var(--ink-2)">${currentLang==='zh'?'以链上为准':'On-chain'}</span></div>`:`<div class="rec-row"><span>${fh(currentLang==='zh'?'到账金额':'Amount','链上 notify 推送的真实到账金额;以链上为准')}</span><span class="amount">100.00 USDT</span></div>`}
+      <div class="rec-row"><span>${t('network')} / ${t('coin')}</span><span class="v">TRC20 / USDT</span></div>
+      <div class="rec-row"><span>${fh(currentLang==='zh'?'入账地址':'Address','wallet_addr — 该户口在该链的专属永久地址(POST /api/third/pay/save 创建)')}</span><span class="v" style="font-size:10px;font-family:monospace;color:var(--gold)">TRxBpQ...gD7Nk</span></div>
+      ${st==='success'?`<div class="rec-row"><span>${fh(currentLang==='zh'?'交易号':'Tx Hash','txId — 链上交易哈希,全球唯一;notify 推送字段;系统按 txId 幂等(同 txId 不会重复上分)')}</span><span class="v" style="font-size:10px;font-family:monospace">a1b2c3d4e5...0e1f2a3b4</span></div>
+      <div class="rec-row"><span>${fh(currentLang==='zh'?'交易详情':'Voucher','voucherLink — 网关推送的区块浏览器链接(tronscan);客户可点开看完整交易明细')}</span><span class="v" style="color:var(--gold);cursor:pointer" onclick="toast('${currentLang==='zh'?'打开交易详情':'Open tx details'}')">${currentLang==='zh'?'查看 ›':'View ›'}</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'到账时间':'Credit Time'}</span><span class="v">2026-05-14 14:32:18</span></div>`:''}
+    </div>
+    ${st==='waiting'?`<div class="info-tip" style="background:rgba(232,189,112,.06);border:1px solid rgba(232,189,112,.25)">${currentLang==='zh'?'ℹ️ <b>无需操作</b>。请耐心等待网络确认,通常 1-3 分钟内到账。<b>可关闭页面</b>,到账后会通过余额变化和站内消息通知,无需重复转账':'ℹ️ No action needed. Usually 1-3 min. Safe to close — you will be notified'}</div>`:''}
+    <div style="padding:8px 14px 0">
+      ${st==='waiting'?`<div class="btn-primary" onclick="goto('home')">${currentLang==='zh'?'返回首页':(currentLang==='en'?'Back to Home':'홈으로')}</div>`:`<div class="btn-primary" onclick="caSet({depositStep:1,creditStatus:'waiting'});goto('home')">${currentLang==='zh'?'完成':'Done'}</div>`}
+    </div>
+    <div style="margin:10px 14px 4px;padding:8px;background:rgba(155,127,232,.04);border:1px dashed rgba(155,127,232,.2);border-radius:6px;text-align:center">
+      <div style="color:#9b7fe8;font-size:9px;margin-bottom:4px;letter-spacing:.5px">🧪 DEV ${currentLang==='zh'?'原型演示(生产不显示)':'Prototype Demo (hidden in prod)'}</div>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+        <span onclick="caSet({creditStatus:'waiting'})" style="cursor:pointer;font-size:11px;padding:4px 10px;background:${st==='waiting'?'rgba(232,189,112,.35)':'rgba(232,189,112,.1)'};color:#e8bd70;border-radius:4px">⏳ ${currentLang==='zh'?'等待入账':'Waiting'}</span>
+        <span onclick="caSet({creditStatus:'success'})" style="cursor:pointer;font-size:11px;padding:4px 10px;background:${st==='success'?'rgba(80,175,149,.35)':'rgba(80,175,149,.1)'};color:#50AF95;border-radius:4px">✅ ${currentLang==='zh'?'自动入账':'Credited'}</span>
+      </div>
+    </div>
+  `;
+}
+
+function caWithdrawStep1(){
+  return `
+    ${caStepper(1, caWithdrawSteps())}
+    <div class="form-card">
+      <div class="form-item">
+        <span class="label">${fh(currentLang==='zh'?'提币金额':'Amount','withdrawAmount — 必须 ≤ 可用余额(锁定余额不可提);本轮支持小数,后续限整数')}</span>
+        <input class="ipt" placeholder="${currentLang==='zh'?'提币金额':'Amount'}" />
+      </div>
+      <div class="form-item">
+        <span class="label">${fh(t('network'),'主网类型 main_network — 必须与目标钱包网络一致,选错资产丢失')}</span>
+        <span class="ipt" style="text-align:right;color:var(--gold)">TRC20 ›</span>
+      </div>
+      <div class="form-item">
+        <span class="label">${fh(t('commissionFee'),'手续费 fee — 区块链网络手续费;fee_way ∈ {扣本金, 外加} 通过 POST /api/pwa/usdtApply/fee 实时计算')}</span>
+        <span class="ipt" style="text-align:right">1 USDT (${currentLang==='zh'?'扣本金':'deducted'}) ›</span>
+      </div>
+      <div class="form-item">
+        <span class="label">${fh(t('walletAddress'),'目标钱包地址 wallet_addr — 会员自己的目标钱包地址;输入错误资产无法找回')}</span>
+        <input class="ipt" placeholder="${currentLang==='zh'?'目标钱包地址':'Target Address'}" />
+      </div>
+      <div class="form-item">
+        <span class="label">${fh(t('payPwd'),'交易密码 pwd — 6 位数字交易密码;前端 cryptoEncrypt(pwd, ACCOUNT_AES_KEY) 加密上送')}</span>
+        <input class="ipt" type="password" placeholder="${t('payPwd')}" />
+      </div>
+    </div>
+    <div class="info-tip" style="background:rgba(155,127,232,.08);border:1px solid rgba(155,127,232,.3)">${currentLang==='zh'?'ℹ️ 本轮提币流程<b>不变</b>(等提币接口文档);仍走账房「预约消息→存提币审核→提币」人工通过后链上转账':(currentLang==='en'?'ℹ️ Withdraw stays manual this round; cashier review then on-chain transfer':'ℹ️ 출금은 이번 차수에 변경 없음')}</div>
+    <div class="btn-primary" onclick="caSet({withdrawStep:2})">${t('next')}</div>
+  `;
+}
+
+function caWithdrawStep2(){
+  return `
+    ${caStepper(2, caWithdrawSteps())}
+    <div class="rec-card">
+      <div class="rec-row h"><span>${currentLang==='zh'?'提币确认':'Withdraw Confirm'}</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'提币金额':'Amount'}</span><span class="amount">500.00 USDT</span></div>
+      <div class="rec-row"><span>${t('network')}</span><span class="v">TRC20 (TRON)</span></div>
+      <div class="rec-row"><span>${t('commissionFee')}</span><span class="v">1 USDT (${currentLang==='zh'?'扣本金':'deducted'})</span></div>
+      <div class="rec-row"><span>${fh(currentLang==='zh'?'实际到账':'Actual Receive','实际到账 = 提币金额 - 手续费(扣本金) 或 = 提币金额(外加)')}</span><span class="amount">499.00 USDT</span></div>
+      <div class="rec-row"><span>${t('walletAddress')}</span><span class="v" style="font-size:10px;color:var(--gold);word-break:break-all;font-family:monospace">TRyZ9kPq...8aB2Cn</span></div>
+    </div>
+    <div class="form-card">
+      <div class="form-item">
+        <span class="label">${fh(currentLang==='zh'?'Google 验证码':'Google Code','opt_code — userInfo.opt_switch=1 时强制 6 位 Google Authenticator 验证码;opt_switch=0 时可隐藏此项')}</span>
+        <input class="ipt" placeholder="6 ${currentLang==='zh'?'位数字':'digits'}" />
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;padding:0 14px">
+      <div class="btn-primary" style="flex:1;background:transparent;border:1px solid var(--gold);color:var(--gold)" onclick="caSet({withdrawStep:1})">${currentLang==='zh'?'返回修改':'Edit'}</div>
+      <div class="btn-primary" style="flex:1" onclick="caSet({withdrawStep:3})">${t('submit')}</div>
+    </div>
+  `;
+}
+
+function caWithdrawStep3(){
+  return `
+    ${caStepper(3, caWithdrawSteps())}
+    <div style="text-align:center;padding:24px 14px 8px">
+      <div style="font-size:56px">⏳</div>
+      <div style="color:var(--gold);font-size:18px;font-weight:700;margin-top:8px">${currentLang==='zh'?'已提交,等待账房审核':'Submitted, awaiting cashier'}</div>
+      <div style="color:var(--ink-2);font-size:11px;margin-top:6px;padding:0 20px">${currentLang==='zh'?'账房 SLA 30 分钟内处理,通过后链上转账约 1-3 分钟到账':'30 min cashier SLA, 1-3 min on-chain'}</div>
+    </div>
+    <div class="rec-card">
+      <div class="rec-row h"><span>${fh(currentLang==='zh'?'提币申请':'Withdraw Request','本轮提币流程不变,等提币接口文档后再定订单号规则')}</span><span class="badge pending">${currentLang==='zh'?'审核中':'Reviewing'}</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'提币金额':'Amount'}</span><span class="amount">500.00 USDT</span></div>
+      <div class="rec-row"><span>${t('network')}</span><span class="v">TRC20</span></div>
+      <div class="rec-row"><span>${currentLang==='zh'?'提交时间':'Submit Time'}</span><span class="v">2026-05-13 14:35:02</span></div>
+    </div>
+    <div class="btn-primary" style="margin-top:14px" onclick="caSet({withdrawStep:1});goto('home')">${currentLang==='zh'?'完成':'Done'}</div>
+  `;
+}
+
+/* ---------- /currencyExchange ---------- */
+RENDERERS.currencyExchange = () => `
+  <div class="page active">
+    ${navBar('currencyExchange')}
+    <div class="body-scroll">
+      <div class="form-card">
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'转出币种':'From','youSent — 持有币种 → 兑出币种')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">HKD ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${currentLang==='zh'?'兑换金额':'Amount'}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'请输入正确兑换金额':'Enter amount'}" />
+        </div>
+        <div style="text-align:center;color:var(--ink-2);font-size:18px;padding:8px">↕</div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'转入币种':'To','youReceive — 兑入币种；当前仅支持有汇率配置的币对')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">USD ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${currentLang==='zh'?'到账金额':'Receive'}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">— USD</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'汇率':'Rate','参考今日汇率页')}</span>
+          <span class="ipt" style="text-align:right;cursor:pointer" onclick="goto('exchangeRate')">7.80 ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('payPwd'),'交易密码 pwd — 6 位数字交易密码确认换汇')}</span>
+          <input class="ipt" type="password" placeholder="${t('payPwd')}" />
+        </div>
+      </div>
+      <div class="btn-primary" onclick="toast('${currentLang==='zh'?'兑换成功':'Exchanged'}')">${t('confirm')}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /gameWallet ---------- */
+RENDERERS.gameWallet = () => `
+  <div class="page active">
+    ${navBar('gameWallet')}
+    <div class="body-scroll">
+      <div class="gw-card">
+        <div class="gw-label">${fh(currentLang==='zh'?'账房存款余额':'Cashier Balance','zfDepositBalance — 会员钱包中可用于上分的钱')}</div>
+        <div class="gw-val">HK$ 88,000.00</div>
+      </div>
+      <div class="gw-card">
+        <div class="gw-label">${fh(currentLang==='zh'?'电投钱包余额':'Game Wallet','teleBetWalletBalance — 已上分到游戏端的金额，可用于电投投注')}</div>
+        <div class="gw-val">HK$ 12,500.00</div>
+        <div class="gw-action">
+          <div onclick="toast('${currentLang==='zh'?'游戏上分':'Top up'}')">⬆️ ${currentLang==='zh'?'上分':'Top up'}</div>
+          <div onclick="toast('${currentLang==='zh'?'游戏下分':'Withdraw'}')">⬇️ ${currentLang==='zh'?'下分':'Withdraw'}</div>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'交收方案':'Settlement','settlementMethod — 即出/月结/公司额度/临时额度；上分前必选；form.gameWallet.pleaseSelectSettlement')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">${currentLang==='zh'?'即出':'Immediate'} ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'本金类型':'Principal Type','principalType — 股东额度/上线额度/公司额度/临时额度/股本')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">${currentLang==='zh'?'公司额度':'Company'} ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'上分金额':'Top up Amount','金额必须 ≤ 账房存款余额；整千位 fullKilobit')}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'金额':'Amount'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'实际存入金额':'Actual','actualDepositAmount — 扣除手续费后实际到账')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">—</span>
+        </div>
+      </div>
+      <div class="btn-primary" onclick="toast('${currentLang==='zh'?'上分成功':'Top up success'}')">${t('confirm')}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /exchangeRate ---------- */
+RENDERERS.exchangeRate = () => `
+  <div class="page active">
+    ${navBar('exchangeRate')}
+    <div class="body-scroll">
+      <div style="padding:14px 12px;color:var(--ink-2);font-size:11px">${currentLang==='zh'?'更新时间':'Updated'}: 2026-05-12 09:00</div>
+      ${[
+        {flag:'🇺🇸',code:'USD',name:'美元 → HKD',val:'7.8023'},
+        {flag:'🇭🇰',code:'HKD',name:'港币 → USD',val:'0.1282'},
+        {flag:'🇵🇭',code:'PHP',name:'菲律宾比索 → HKD',val:'0.1389'},
+        {flag:'💎',code:'USDT',name:'泰达币 → HKD',val:'7.7980'},
+        {flag:'🇨🇳',code:'CNY',name:'人民币 → HKD',val:'1.0825'},
+        {flag:'🇸🇬',code:'SGD',name:'新加坡元 → HKD',val:'5.8302'},
+        {flag:'🇲🇾',code:'MYR',name:'马来令吉 → HKD',val:'1.6541'},
+        {flag:'🇯🇵',code:'JPY',name:'日元 → HKD',val:'0.0503'}
+      ].map(r=>`
+        <div class="rate-row">
+          <div class="flag">${r.flag}</div>
+          <div class="rate-main">
+            <div class="code">${r.code}</div>
+            <div class="name">${r.name}</div>
+          </div>
+          <div class="rate-val">${r.val}</div>
+        </div>
+      `).join('')}
+      <div class="info-tip" style="margin-top:14px">${currentLang==='zh'?'汇率仅供参考；实际兑换以提交时为准':'Rates for reference only'}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /reserveService ---------- */
+RENDERERS.reserveService = () => `
+  <div class="page active">
+    ${navBar('reserveService')}
+    <div class="body-scroll">
+      <div class="often-nav" style="grid-template-columns:repeat(3,1fr);margin-top:14px">
+        <div class="nav-item" onclick="goto('codeOut')">
+          <div class="nav-icon">🎯</div>
+          <div class="nav-label">${t('codeOut')}</div>
+        </div>
+        <div class="nav-item" onclick="goto('withdrawal')">
+          <div class="nav-icon">💸</div>
+          <div class="nav-label">${t('withdrawal')}</div>
+        </div>
+        <div class="nav-item" onclick="toast('预约加彩')">
+          <div class="nav-icon">🎁</div>
+          <div class="nav-label">${currentLang==='zh'?'预约加彩':'Add Money'}</div>
+        </div>
+      </div>
+      <div style="color:var(--ink-2);font-size:12px;padding:14px 16px 6px">${currentLang==='zh'?'我的预约':'My Reservations'}</div>
+      ${row({icon:'📅', title:t('reserveRecord'), sub:currentLang==='zh'?'查看所有预约状态':'View all reservations', onclick:"goto('reserveRecord')"})}
+      <div class="info-tip">${currentLang==='zh'?'预约电话需在现场接收验证码验证<br/>本次预约将在 30 分钟后自动失效':'On-site verification required'}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /codeOut ---------- */
+RENDERERS.codeOut = () => `
+  <div class="page active">
+    ${navBar('codeOut')}
+    <div class="body-scroll">
+      <div class="form-card">
+        <div class="form-item">
+          <span class="label">${fh(t('bookAVenue'),'预约场馆 venue — 会员选择要去出码的赌场')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">Solaire VIP ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'开工币种':'Currency','startCoin — 本次出码使用的币种')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">HKD ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'本金类型':'Principal','principalType — 股东/上线/公司/临时额度等')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">${currentLang==='zh'?'公司额度':'Company'} ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('codeType'),'出码类型 codeType — Maker (M) / Cash (C)；不同类型对应不同的额度池和结算方式')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">M ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('accountedFor'),'占成 accountedFor — 会员本次开工的占成比例 %，决定赢输如何分账')}</span>
+          <input class="ipt" placeholder="50" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('codeAmount'),'出码金额 codeAmount — 出码金额需 ≥ 1 万；整千位 fullKilobit')}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'请输入出码金额':'Code amount'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('reserveDate'),'预约时间 reserveDate — 会员预计到场出码时间')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">2026-05-12 20:00 ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('phoneNumber'),'手机号 phoneNumber — 现场接收验证码用')}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'手机号':'Phone'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${currentLang==='zh'?'出码人':'Coder'}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'非必填':'Optional'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('payPwd'),'交易密码 — 6 位数字')}</span>
+          <input class="ipt" type="password" placeholder="${t('payPwd')}" />
+        </div>
+      </div>
+      <div class="btn-primary" onclick="toast('${currentLang==='zh'?'预约出码成功':'Code reserved'}');setTimeout(()=>goto('reserveRecord'),500)">${t('submit')}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /withdrawal ---------- */
+RENDERERS.withdrawal = () => `
+  <div class="page active">
+    ${navBar('withdrawal')}
+    <div class="body-scroll">
+      <div class="info-tip">${currentLang==='zh'?'预约取款最少 100 最多 10000 万':'Min 100 / Max 10000W'}</div>
+      <div class="form-card">
+        <div class="form-item">
+          <span class="label">${fh(t('bookAVenue'),'预约场馆 — 现场取款赌场')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">Newport VIP ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('coin'),'币种')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">HKD ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('withdrawalAmount'),'取款金额 withdrawalAmount — 必须 ≤ 户口可用余额；规则 plsReEnterAmount')}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'请输入取款金额':'Amount'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('reserveDate'),'预约时间')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">2026-05-12 21:00 ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${currentLang==='zh'?'取款人':'Withdrawer'}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'非必填':'Optional'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(t('payPwd'),'交易密码')}</span>
+          <input class="ipt" type="password" placeholder="${t('payPwd')}" />
+        </div>
+      </div>
+      <div class="btn-primary" onclick="toast('${currentLang==='zh'?'预约取款成功':'W/D reserved'}');setTimeout(()=>goto('reserveRecord'),500)">${t('submit')}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /reserveRecord ---------- */
+RENDERERS.reserveRecord = () => `
+  <div class="page active">
+    ${navBar('reserveRecord')}
+    <div class="filter-row">
+      <div class="f active">${currentLang==='zh'?'全部':'All'}</div>
+      <div class="f">${currentLang==='zh'?'待出码':'Pending'}</div>
+      <div class="f">${currentLang==='zh'?'已出码':'Done'}</div>
+      <div class="f">${currentLang==='zh'?'已取消':'Cancelled'}</div>
+    </div>
+    <div class="body-scroll">
+      ${[
+        {type:'出码',venue:'Solaire',amt:200000,date:'2026-05-12 20:00',state:'待出码',badge:'pending'},
+        {type:'取款',venue:'Newport',amt:50000,date:'2026-05-12 18:30',state:'已取款',badge:'ok'},
+        {type:'加彩',venue:'OneKey',amt:30000,date:'2026-05-11 22:00',state:'已过期',badge:'warn'}
+      ].map(r=>`
+        <div class="rec-card">
+          <div class="rec-row h"><span>${currentLang==='zh'?'预约':'REZ'} - ${r.type}</span>
+            <span class="badge ${r.badge}">${r.state}</span>
+          </div>
+          <div class="rec-row"><span>${currentLang==='zh'?'预约场馆':'Venue'}</span><span class="v">${r.venue}</span></div>
+          <div class="rec-row"><span>${currentLang==='zh'?'金额':'Amount'}</span><span class="amount">HK$ ${r.amt.toLocaleString()}</span></div>
+          <div class="rec-row"><span>${currentLang==='zh'?'预约时间':'Time'}</span><span class="v">${r.date}</span></div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+`;
+
+/* ---------- /record ---------- */
+RENDERERS.record = () => `
+  <div class="page active">
+    ${navBar('record', {back:false})}
+    <div class="body-scroll">
+      <div style="padding:14px 12px;color:var(--ink-2);font-size:12px">${currentLang==='zh'?'查看您的全部记录':'View all your records'}</div>
+      ${row({icon:'💰', title:t('transactionRecord'), sub:currentLang==='zh'?'转账/存款/取款/电投':'Transfer/Deposit/Withdraw', onclick:"goto('transactionRecord')"})}
+      ${row({icon:'🎰', title:t('startWorkRecord'), sub:currentLang==='zh'?'开工/收工 + 上下数 + 转码':'Sessions + U/D + Conversions', onclick:"goto('startWorkRecord')"})}
+      ${row({icon:'📒', title:t('creditRecord'), sub:currentLang==='zh'?'签 M / 还款 / 罚息':'Sign M / Repay / Interest', onclick:"goto('creditRecord')"})}
+      ${row({icon:'💹', title:t('commissionRecord'), sub:currentLang==='zh'?'佣金结算明细':'Commission settlement', onclick:"goto('commissionRecord')"})}
+      ${row({icon:'👥', title:t('subordinateRecord'), sub:currentLang==='zh'?'下级开工记录':'Subordinate sessions', onclick:"goto('subordinateRecord')"})}
+      ${row({icon:'🎮', title:t('gameRecord'), sub:currentLang==='zh'?'电投场次明细':'E-bet sessions', onclick:"goto('gameRecord')"})}
+      ${row({icon:'🌳', title:t('downLineReport'), sub:currentLang==='zh'?'下线层级报表':'Sub-account hierarchy', onclick:"goto('downLineReport')"})}
+    </div>
+  </div>
+`;
+
+/* ---------- /record/transactionRecord ---------- */
+/* 2026-05-14 v2 — 对齐现状钱包样式:4 筛选 + 紧凑卡片;点击行跳详情页 */
+RENDERERS.transactionRecord = () => {
+  const preset = window.txPreset || {};
+  const ccyActive = preset.ccy || 'USDT';
+  const d = new Date();
+  const curMonth = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  const monthActive = preset.month || curMonth;
+  window.txPreset = null;
+
+  // mock 交易数据(USDT 自动入账,从「我已转账」过来跳到此页时新生成的)
+  const mockTxs = [
+    {
+      id:'7460207430173982720', type:'存款', ccy:'USDT', amount:10, balanceAfter:10,
+      time:'2026-05-13 14:00:55', hall:'H5', customerRemark:'',
+      txId:'a1b2c3d4e5f67890ab12cd34ef56789012345678abcdef0e1f2a3b4',
+      memberCode:'kyle11', memberName:'KYLE11'
+    }
+  ];
+  const shownTxs = (ccyActive==='USDT') ? mockTxs : [];
+  // 2026-05-14 改:避开 onclick 里 JSON.stringify 嵌入 HTML 属性的 escape 问题,改用全局数组 + 索引
+  window.__shownTxList = shownTxs;
+
+  // filter pill — 圆角深色块
+  const pill = (icon, label, val, valStyle) => `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:14px;font-size:13px;cursor:pointer">
+    <span style="color:var(--gold);display:flex;align-items:center;gap:6px"><span style="font-size:15px">${icon}</span>:${label}</span>
+    <span style="color:var(--ink);display:flex;align-items:center;gap:6px;font-size:12px">${valStyle?valStyle:val} <span style="color:var(--ink-3);font-size:10px">▾</span></span>
+  </div>`;
+  const usdtPill = '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;background:#26a17b;border-radius:4px;color:#fff;font-size:10px;font-weight:600">Ⓣ USDT</span>';
+
+  return `
+  <div class="page active">
+    ${navBar(currentLang==='zh'?'交易记录':'Transactions')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 14px 6px">
+      ${pill('💰', currentLang==='zh'?'币种':'Coin', '', usdtPill)}
+      ${pill('📍', currentLang==='zh'?'场馆':'Venue', currentLang==='zh'?'全部':'All')}
+      ${pill('📅', '', monthActive)}
+      ${pill('📋', currentLang==='zh'?'类型':'Type', currentLang==='zh'?'全部':'All')}
+    </div>
+    <div class="body-scroll" style="padding:8px 14px 14px">
+      ${shownTxs.map((tx, idx) => `
+        <div onclick="window.txDetail=window.__shownTxList[${idx}];goto('transactionDetail')" style="display:flex;align-items:center;gap:12px;padding:14px 14px;background:rgba(255,255,255,.04);border-radius:14px;margin-bottom:10px;cursor:pointer">
+          <div style="width:42px;height:42px;background:#26a17b;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px">Ⓣ</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="color:#37a06b;font-size:14px;font-weight:500">${tx.type}</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:rgba(55,160,107,.15);border-radius:50%;color:#37a06b;font-size:11px">↗</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink);margin-top:6px">${tx.time.slice(0, 16)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+              <span style="color:#37a06b;font-weight:700;font-size:16px">+${tx.amount}</span>
+              <span style="color:var(--ink-3);font-size:16px">›</span>
+            </div>
+            <div style="color:var(--gold);font-size:12px;margin-top:6px">${currentLang==='zh'?'余额':'Balance'}:${tx.balanceAfter}</div>
+          </div>
+        </div>
+      `).join('')}
+      ${shownTxs.length===0?`<div style="padding:60px 0;text-align:center;color:var(--ink-3);font-size:13px">${currentLang==='zh'?'暂无该币种交易记录':'No records for this coin'}</div>`:`<div style="text-align:center;color:var(--ink-3);font-size:12px;padding:20px">${currentLang==='zh'?'没有更多数据了':'No more data'}</div>`}
+    </div>
+  </div>
+`;
+};
+
+/* ---------- /record/transactionDetail (USDT 自动入账详情;参考现状黄色票据样式) ---------- */
+RENDERERS.transactionDetail = () => {
+  const tx = window.txDetail || {};
+  // 系统备注:户口名/号 + 快捷存币 自动到账 + 交易号
+  const txIdShort = tx.txId ? (tx.txId.slice(0,10) + '...' + tx.txId.slice(-6)) : '';
+  const sysRemark = `户口名:${tx.memberName||'-'}/户口号:${tx.memberCode||'-'}  快捷存币  自动到账  交易号:${txIdShort}`;
+  const ccyPill = '<span style="display:inline-flex;align-items:center;gap:3px;padding:3px 10px;background:#26a17b;border-radius:4px;color:#fff;font-size:11px;font-weight:600">Ⓣ USDT</span>';
+  const row = (label, val) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px dashed rgba(58,42,9,.25)">
+    <span style="font-size:13px;color:#5a3a09">${label}</span>
+    <span style="font-size:13px;font-weight:600;color:#211F23">${val}</span>
+  </div>`;
+  return `
+  <div class="page active">
+    ${navBar(currentLang==='zh'?'交易详情':'Detail')}
+    <div class="body-scroll" style="padding:14px">
+      <!-- 金色 LOGO + 结存金额卡 -->
+      <div style="background:linear-gradient(135deg,#3a2e1e 0%,#5a4528 50%,#3a2e1e 100%);border-radius:18px;padding:28px 16px 20px;text-align:center;position:relative;overflow:hidden;border:1px solid rgba(232,189,112,.2)">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 30% 50%, rgba(232,189,112,.12), transparent 70%);pointer-events:none"></div>
+        <!-- STAR VIP wordmark -->
+        <div style="position:relative;font-family:Georgia,serif;font-size:48px;font-weight:900;letter-spacing:-1px;line-height:.95;color:var(--gold);text-shadow:0 2px 8px rgba(232,189,112,.3)">
+          st<span style="color:#fff">★</span>r<br/>VIP
+        </div>
+        <!-- 金额方框 -->
+        <div style="margin-top:18px;display:inline-block;padding:8px 28px;background:rgba(0,0,0,.35);border-radius:8px">
+          <span style="color:#fff;font-size:30px;font-weight:700;letter-spacing:1px">${tx.amount||0}</span>
+        </div>
+        <div style="color:var(--ink-2);font-size:13px;margin-top:8px">${currentLang==='zh'?'结存金额':'Balance'}</div>
+        <div style="color:#fff;font-size:13px;margin-top:8px">${currentLang==='zh'?'存款人':'Depositor'}:${tx.memberName||'-'}/${tx.memberCode||'-'}</div>
+      </div>
+      <!-- 黄色票据 -->
+      <div style="margin-top:14px;background:linear-gradient(180deg,#f8dc8e 0%,#e8b85e 100%);border-radius:16px;padding:18px 18px 14px;color:#3a2a09;position:relative">
+        ${row(`<span style="display:inline-flex;align-items:center;gap:6px">${currentLang==='zh'?'订单编号':'Order'} <span style="cursor:pointer" onclick="toast('${currentLang==='zh'?'订单编号已复制':'Copied'}')">📋</span></span>`, tx.id||'-')}
+        ${row(currentLang==='zh'?'交易类型':'Type', tx.type||'-')}
+        ${row(currentLang==='zh'?'币种':'Coin', ccyPill)}
+        ${row(currentLang==='zh'?'金额':'Amount', `<span style="color:#37a06b;font-weight:700">+${tx.amount||0}</span>`)}
+        ${row(currentLang==='zh'?'操作场馆':'Venue', tx.hall||'-')}
+        ${row(currentLang==='zh'?'交易时间':'Time', tx.time||'-')}
+        ${row(currentLang==='zh'?'客户备注':'Note', tx.customerRemark||'-')}
+        <div style="padding:12px 0 4px">
+          <div style="font-size:13px;color:#5a3a09;margin-bottom:8px">${currentLang==='zh'?'系统备注':'System Note'}</div>
+          <div style="font-size:12px;line-height:1.7;color:#211F23;word-break:break-all">${sysRemark}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+};
+
+/* ---------- /record/startWorkRecord ---------- */
+RENDERERS.startWorkRecord = () => `
+  <div class="page active">
+    ${navBar('startWorkRecord')}
+    <div class="body-scroll">${homeStartContent()}${homeStartContent()}</div>
+  </div>
+`;
+
+/* ---------- /record/creditRecord ---------- */
+RENDERERS.creditRecord = () => `
+  <div class="page active">
+    ${navBar('creditRecord')}
+    <div class="filter-row">
+      <div class="f active">${currentLang==='zh'?'全部':'All'}</div>
+      <div class="f">${currentLang==='zh'?'签 M':'Sign M'}</div>
+      <div class="f">${currentLang==='zh'?'还款':'Repay'}</div>
+      <div class="f">${currentLang==='zh'?'罚息':'Interest'}</div>
+    </div>
+    <div class="body-scroll">
+      ${[
+        {type:'签 M',amt:200000,id:'M20260510001',state:'待还款',badge:'pending'},
+        {type:'还款',amt:100000,id:'M20260505003',state:'已结清',badge:'ok'},
+        {type:'罚息',amt:1500,id:'M20260420001',state:'已结算',badge:'warn'}
+      ].map(r=>`
+        <div class="rec-card">
+          <div class="rec-row h"><span>${r.type} - ${fh(r.id,'M 单号 MOrderNumber')}</span><span class="badge ${r.badge}">${r.state}</span></div>
+          <div class="rec-row"><span>${fh(currentLang==='zh'?'金额':'Amount','amount')}</span><span class="amount">HK$ ${r.amt.toLocaleString()}</span></div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+`;
+
+/* ---------- /record/commissionRecord ---------- */
+RENDERERS.commissionRecord = () => `
+  <div class="page active">
+    ${navBar('commissionRecord')}
+    <div class="body-scroll">
+      <div class="gw-card">
+        <div class="gw-label">${currentLang==='zh'?'本月累计佣金':'This Month'}</div>
+        <div class="gw-val">HK$ 25,800</div>
+      </div>
+      ${[
+        {session:'EBT202605101',conv:1250000,prop:'1.2%',comm:15000,method:'即出'},
+        {session:'EBT202605051',conv:880000,prop:'1.2%',comm:10560,method:'月结'}
+      ].map(c=>`
+        <div class="rec-card">
+          <div class="rec-row h">${c.session}</div>
+          <div class="rec-row"><span>${fh('结算转码','settlementTranscode — 结算时的转码数')}</span><span class="v">${c.conv.toLocaleString()}</span></div>
+          <div class="rec-row"><span>${fh('占成比','proportion — 占成百分比，决定佣金计算基数')}</span><span class="v">${c.prop}</span></div>
+          <div class="rec-row"><span>${fh('结算方式','settlementMethod — 即出/月结')}</span><span class="v">${c.method}</span></div>
+          <div class="rec-row"><span>${fh('结算佣金','settlementCommission — 实际结算到会员的佣金金额')}</span><span class="amount">HK$ ${c.comm.toLocaleString()}</span></div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+`;
+
+/* ---------- /record/subordinateRecord ---------- */
+RENDERERS.subordinateRecord = () => `
+  <div class="page active">
+    ${navBar('subordinateRecord')}
+    <div class="body-scroll">
+      ${[1,2,3].map(i=>`
+        <div class="rec-card">
+          <div class="rec-row h">${fh('SVG889'+i+'2 / 王五','subordinateAccount — 下级户口号')}</div>
+          <div class="rec-row"><span>${t('numberConversions')}</span><span class="amount">${(580000*i).toLocaleString()}</span></div>
+          <div class="rec-row"><span>${t('upDownCount')}</span><span class="v">${(120000*i).toLocaleString()}</span></div>
+          <div class="rec-row"><span>${currentLang==='zh'?'开工时间':'Start'}</span><span class="v">05-1${i} 20:00</span></div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+`;
+
+/* ---------- /record/gameRecord ---------- */
+RENDERERS.gameRecord = () => `
+  <div class="page active">
+    ${navBar('gameRecord')}
+    <div class="body-scroll">${homeGameContent()}${homeGameContent()}</div>
+  </div>
+`;
+
+/* ---------- /record/downLineReport ---------- */
+RENDERERS.downLineReport = () => `
+  <div class="page active">
+    ${navBar('downLineReport')}
+    <div class="body-scroll">
+      <div class="gw-card">
+        <div class="gw-label">${currentLang==='zh'?'下线层级 (3 层)':'Hierarchy (3 levels)'}</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--ink-2)">
+          <div>👤 ${fh('SVG88888 / Sammy (我)','顶层会员')}</div>
+          <div style="padding-left:16px;margin-top:6px">└─ 👤 SVG88912 / 王五 (L1) — 转码 580K</div>
+          <div style="padding-left:32px;margin-top:6px">└─ 👤 SVG88923 / 赵六 (L2) — 转码 220K</div>
+          <div style="padding-left:48px;margin-top:6px">└─ 👤 SVG88934 / 钱七 (L3) — 转码 80K</div>
+        </div>
+      </div>
+      <div class="info-tip">${currentLang==='zh'?'下线层级影响佣金分成；股东户/VVIP 可查看完整下线':'Hierarchy affects commission distribution'}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /memberServices ---------- */
+RENDERERS.memberServices = () => `
+  <div class="page active">
+    ${navBar('memberServices')}
+    <div class="body-scroll">
+      <div class="gw-card">
+        <div style="display:flex;justify-content:space-between">
+          <div>
+            <div class="gw-label">${fh(currentLang==='zh'?'星币余额':'Star Coin','starPointsBalance — 可用于订务消费')}</div>
+            <div class="gw-val">1,888</div>
+          </div>
+          <div>
+            <div class="gw-label">${fh(currentLang==='zh'?'存卡余额':'Deposit Card','depositBalance — 会员存卡余额，订务备选支付方式')}</div>
+            <div class="gw-val" style="font-size:18px">HK$ 88,000</div>
+          </div>
+        </div>
+      </div>
+      <div class="often-nav" style="grid-template-columns:1fr 1fr;height:auto">
+        <div class="nav-item" onclick="goto('bookCar')">
+          <div class="nav-icon">🚗</div>
+          <div class="nav-label">${t('bookCar')}</div>
+        </div>
+        <div class="nav-item" onclick="goto('bookHotel')">
+          <div class="nav-icon">🏨</div>
+          <div class="nav-label">${t('bookHotel')}</div>
+        </div>
+      </div>
+      <div style="color:var(--ink-2);font-size:12px;padding:14px 16px 6px">${currentLang==='zh'?'我的订单':'My Orders'}</div>
+      ${row({icon:'📋', title:currentLang==='zh'?'订单记录':'Order history', onclick:"toast('订单记录')"})}
+    </div>
+  </div>
+`;
+
+/* ---------- /memberServices/bookCar ---------- */
+RENDERERS.bookCar = () => `
+  <div class="page active">
+    ${navBar('bookCar')}
+    <div class="body-scroll">
+      <div class="form-card">
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'车型':'Car Type','carType — 经济型/商务型/豪华型，决定价格')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">${currentLang==='zh'?'商务型':'Business'} ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'上车地点':'Boarding','boardingLocation')}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'请输入上车地点':'Boarding location'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'目的地':'Destination','destination')}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'请输入目的地':'Destination'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'乘车人数':'People','peopleNum')}</span>
+          <input class="ipt" placeholder="${currentLang==='zh'?'请输入乘车人数':'Number'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${currentLang==='zh'?'用车时间':'Time'}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">2026-05-13 14:00 ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'订单总额':'Total','totalAmount — 包含车费+服务费')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">⭐ 800 ${currentLang==='zh'?'星币':'StarCoin'}</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'支付方式':'Payment','paymentMethod — 星币支付 / 存卡支付')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">${currentLang==='zh'?'星币支付':'Star Coin'} ›</span>
+        </div>
+      </div>
+      <div class="btn-primary" onclick="toast('${currentLang==='zh'?'预订成功':'Booking success'}')">${t('submit')}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /memberServices/bookHotel ---------- */
+RENDERERS.bookHotel = () => `
+  <div class="page active">
+    ${navBar('bookHotel')}
+    <div class="body-scroll">
+      <div class="form-card">
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'选择酒店':'Hotel','selectHotel — 系统合作酒店列表')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">Solaire Resort ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'房型':'Room','roomType')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">Deluxe Suite ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'入住时间':'Check-in','checkInTime')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">2026-05-13 ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'退房时间':'Check-out','departureTime')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">2026-05-15 ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${currentLang==='zh'?'共':'Total'} ${currentLang==='zh'?'天数':'Nights'}</span>
+          <span class="ipt" style="text-align:right">2 ${currentLang==='zh'?'天':'nights'}</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${currentLang==='zh'?'附加':'Add-ons'}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">+${currentLang==='zh'?'迷你吧 早餐':'Minibar Breakfast'} ›</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'入住人证件':'ID Image','IDImage — 入住人护照照片，pleaseUploadID')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">📎 ${currentLang==='zh'?'已上传':'Uploaded'}</span>
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'订单总额':'Total','totalAmount')}</span>
+          <span class="ipt" style="text-align:right;color:var(--gold)">⭐ 1,200</span>
+        </div>
+      </div>
+      <div class="btn-primary" onclick="toast('${currentLang==='zh'?'预订成功':'Booking success'}')">${t('submit')}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /notify ---------- */
+RENDERERS.notify = () => `
+  <div class="page active">
+    ${navBar('notify', {right:currentLang==='zh'?'一键已读':'Read all'})}
+    <div class="h-tabs">
+      <div class="tab active">${currentLang==='zh'?'未读':'Unread'} <span style="color:var(--red);font-size:10px">3</span></div>
+      <div class="tab">${currentLang==='zh'?'已读':'Read'}</div>
+      <div class="tab">${currentLang==='zh'?'待办':'Pending'} <span style="color:var(--red);font-size:10px">2</span></div>
+    </div>
+    <div class="body-scroll">
+      <div class="notify-item unread" onclick="toast('转账验证')">
+        <div class="nt-title">📤 ${currentLang==='zh'?'转账验证':'Transfer Verification'}</div>
+        <div class="nt-body">${fh('SVG88001 / 张三','transfer — 汇款人 sender')} ${currentLang==='zh'?'向您发起一笔转账 请验证':'sent you a transfer, please verify'}</div>
+        <div class="verify-btn">${currentLang==='zh'?'去验证':'Verify'}</div>
+        <div class="nt-time">2026-05-12 10:32</div>
+      </div>
+      <div class="notify-item unread" onclick="toast('取款验证')">
+        <div class="nt-title">💸 ${currentLang==='zh'?'取款验证':'Withdraw Verification'}</div>
+        <div class="nt-body">${currentLang==='zh'?'账房 Newport VIP 取款':'Cashier withdraw'} HK$ 50,000 ${currentLang==='zh'?'请确认':''}</div>
+        <div class="verify-btn">${currentLang==='zh'?'去验证':'Verify'}</div>
+        <div class="nt-time">2026-05-12 09:15</div>
+      </div>
+      <div class="notify-item unread" onclick="toast('打款验证')">
+        <div class="nt-title">🎁 ${currentLang==='zh'?'打款验证':'Add Money'}</div>
+        <div class="nt-body">${currentLang==='zh'?'账房打款':'Cashier add money'} HK$ 20,000 ${currentLang==='zh'?'待您确认':''}</div>
+        <div class="verify-btn">${currentLang==='zh'?'去验证':'Verify'}</div>
+        <div class="nt-time">2026-05-12 08:50</div>
+      </div>
+      <div class="notify-item" onclick="toast('游戏验证')">
+        <div class="nt-title">🎮 ${currentLang==='zh'?'游戏验证':'Game Verification'}</div>
+        <div class="nt-body">${currentLang==='zh'?'电投开工申请':'E-bet session request'} EBT2026051201 ${currentLang==='zh'?'账房交易密码验证':'cashier pwd verify'}</div>
+        <div class="verify-btn">${t('toVerify')}</div>
+        <div class="nt-time">2026-05-11 22:30</div>
+      </div>
+      <div class="notify-item">
+        <div class="nt-title">📢 ${currentLang==='zh'?'系统公告':'System Notice'}</div>
+        <div class="nt-body">${currentLang==='zh'?'系统将于 2026-05-13 04:00-04:30 例行维护':'Maintenance 04:00-04:30'}</div>
+        <div class="nt-time">2026-05-11 18:00</div>
+      </div>
+    </div>
+  </div>
+`;
+
+/* ---------- /dynamic ---------- */
+RENDERERS.dynamic = () => `
+  <div class="page active">
+    ${navBar('dynamic', {back:false})}
+    <div class="body-scroll">
+      <div style="color:var(--gold);font-size:13px;font-weight:600;padding:14px 16px 4px">🔥 ${currentLang==='zh'?'热门动态':'Trending'}</div>
+      ${[
+        {title:currentLang==='zh'?'STAR VIP 五月豪礼活动':'May Promo',meta:'2026-05-10 · ' + (currentLang==='zh'?'阅读 12.8k':'12.8k reads')},
+        {title:currentLang==='zh'?'菲律宾 Solaire 五一长假特别优待':'Solaire Holiday Offer',meta:'2026-05-08'},
+        {title:currentLang==='zh'?'码粮高达 200% 返水 火热进行中':'200% Cashback Now',meta:'2026-05-05'},
+        {title:currentLang==='zh'?'OneKey 厅周年庆 多重豪礼':'OneKey Anniversary',meta:'2026-05-01'}
+      ].map(d=>`
+        <div class="dyn-card" onclick="toast('${d.title}')">
+          <div class="dyn-thumb"></div>
+          <div class="dyn-title">${d.title}</div>
+          <div class="dyn-meta">${d.meta}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+`;
+
+/* ---------- /userCenter ---------- */
+RENDERERS.userCenter = () => `
+  <div class="page active">
+    ${navBar('userCenter', {back:false, right:'⭐ '+t('starCoinDetail')})}
+    <div class="body-scroll">
+      <div class="uc-banner">
+        <div class="user-row">
+          <div class="avatar">S</div>
+          <div class="user-info">
+            <div class="name">Sammy Star</div>
+            <div class="acc">${fh('SVG88888','member_code — 唯一户口号')} · <span style="color:#ECCC80">${fh('VIP','auth_type=1 → VIP 一般户；auth_type=2 → VVIP 股东户')}</span></div>
+          </div>
+          <div style="margin-left:auto;color:var(--gold);font-size:11px;cursor:pointer" onclick="goto('safeSetting')">⚙️</div>
+        </div>
+        <div class="star-coin" onclick="goto('starCoinDetail')">
+          <span>⭐ ${fh(t('starCoin'),'xing_num — 累积：转码奖励/电投转码/服务消费/签到；到期清空；可兑换/抽奖')}</span>
+          <span class="v">1,888</span>
+        </div>
+      </div>
+
+      <div class="uc-grid">
+        <div class="grid-item" onclick="goto('giftRedemption')">
+          <div class="grid-icon">🎁</div>
+          <div class="grid-label">${t('giftRedemption')}</div>
+        </div>
+        <div class="grid-item" onclick="goto('lottery')">
+          <div class="grid-icon">🎰</div>
+          <div class="grid-label">${t('lottery')}</div>
+        </div>
+        <div class="grid-item" onclick="goto('memberServices')">
+          <div class="grid-icon">🏨</div>
+          <div class="grid-label">${fh(t('subscription'),'订务 subscription — 订车/订房')}</div>
+        </div>
+        <div class="grid-item" onclick="goto('funds')">
+          <div class="grid-icon">💰</div>
+          <div class="grid-label">${fh(t('debit'),'借贷 debit — 信贷/M 单')}</div>
+        </div>
+        <div class="grid-item" onclick="goto('record')">
+          <div class="grid-icon">📊</div>
+          <div class="grid-label">${fh(t('checksum'),'查数 checksum — 各类记录查询')}</div>
+        </div>
+        <div class="grid-item" onclick="goto('commissionRecord')">
+          <div class="grid-icon">💹</div>
+          <div class="grid-label">${t('commission')}</div>
+        </div>
+        <div class="grid-item" onclick="goto('gameWallet')">
+          <div class="grid-icon">🎮</div>
+          <div class="grid-label">${t('gameWallet')}</div>
+        </div>
+        <div class="grid-item" onclick="goto('serviceCenter')">
+          <div class="grid-icon">📞</div>
+          <div class="grid-label">${t('serviceCenter')}</div>
+        </div>
+      </div>
+
+      <div class="uc-cell-group">
+        <div class="uc-cell" onclick="goto('authorizer')">
+          <span class="cell-ico">👤</span>
+          <span class="cell-title">${t('myAuthorizer')}</span>
+          <span class="cell-right">${currentLang==='zh'?'查看':'View'}</span>
+          <span class="cell-arrow">›</span>
+        </div>
+      </div>
+      <div class="uc-cell-group">
+        <div class="uc-cell" onclick="goto('safeSetting')">
+          <span class="cell-ico">🔒</span>
+          <span class="cell-title">${t('safeSetting')}</span>
+          <span class="cell-arrow">›</span>
+        </div>
+        <div class="uc-cell" onclick="toast('${currentLang==='zh'?'切换语言':'Language'}')">
+          <span class="cell-ico">🌐</span>
+          <span class="cell-title">${t('switchLanguage')}</span>
+          <span class="cell-right">${currentLang==='zh'?'中文':(currentLang==='en'?'English':'한국어')}</span>
+          <span class="cell-arrow">›</span>
+        </div>
+        <div class="uc-cell">
+          <span class="cell-ico">📩</span>
+          <span class="cell-title">${currentLang==='zh'?'短信消息接收':'SMS'}</span>
+          <span class="cell-right" style="color:var(--green)">●—</span>
+        </div>
+        <div class="uc-cell" onclick="goto('about')">
+          <span class="cell-ico">ℹ️</span>
+          <span class="cell-title">${t('aboutUs')}</span>
+          <span class="cell-arrow">›</span>
+        </div>
+      </div>
+      <div class="btn-secondary" onclick="goto('login');toast('${t('logout')}')">${t('logout')}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /password ---------- */
+RENDERERS.password = () => `
+  <div class="page active">
+    ${navBar('password')}
+    <div class="body-scroll">
+      <div class="info-tip">${currentLang==='zh'?'请输入 6-20 位字符 包含字母和数字 (passwordFormat)':'6-20 chars, letters + digits'}</div>
+      <div class="form-card">
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'原密码':'Old','oldPassword')}</span>
+          <input class="ipt" type="password" placeholder="${currentLang==='zh'?'请输入原密码':'Old password'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'新密码':'New','newPassword')}</span>
+          <input class="ipt" type="password" placeholder="${currentLang==='zh'?'请输入新密码':'New password'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'确认密码':'Confirm','confirmPassword — 必须与新密码一致')}</span>
+          <input class="ipt" type="password" placeholder="${currentLang==='zh'?'请输入确认密码':'Confirm'}" />
+        </div>
+      </div>
+      <div style="text-align:center;color:var(--ink-3);font-size:11px;padding:14px">${currentLang==='zh'?'忘记密码 请联系账房热线 重置密码':'Forgot? Contact cashier'}</div>
+      <div class="btn-primary" onclick="toast('${currentLang==='zh'?'密码修改成功':'Updated'}');setTimeout(()=>goto('userCenter'),500)">${currentLang==='zh'?'确认修改':'Confirm'}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /payPassword ---------- */
+RENDERERS.payPassword = () => `
+  <div class="page active">
+    ${navBar('payPassword')}
+    <div class="body-scroll">
+      <div class="info-tip">${currentLang==='zh'?'交易密码仅支持 6 位数字；不能设置为 123456':'6-digit; cannot be 123456'}</div>
+      <div class="form-card">
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'原密码':'Old','oldPayPwd — 6 位数字交易密码')}</span>
+          <input class="ipt" type="password" maxlength="6" placeholder="6 ${currentLang==='zh'?'位':'digits'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'新密码':'New','newPayPwd — 6 位数字交易密码')}</span>
+          <input class="ipt" type="password" maxlength="6" placeholder="6 ${currentLang==='zh'?'位':'digits'}" />
+        </div>
+        <div class="form-item">
+          <span class="label">${fh(currentLang==='zh'?'确认密码':'Confirm','confirm')}</span>
+          <input class="ipt" type="password" maxlength="6" placeholder="6 ${currentLang==='zh'?'位':'digits'}" />
+        </div>
+      </div>
+      <div class="btn-primary" onclick="toast('${currentLang==='zh'?'交易密码修改成功':'Pay pwd updated'}');setTimeout(()=>goto('userCenter'),500)">${currentLang==='zh'?'确认修改':'Confirm'}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /authorizer ---------- */
+RENDERERS.authorizer = () => `
+  <div class="page active">
+    ${navBar('authorizer')}
+    <div class="body-scroll">
+      <div class="info-tip">${currentLang==='zh'?'授权人可代理您登录钱包进行操作；请慎重添加':'Authorizers can act on your behalf'}</div>
+      <div class="rec-card">
+        <div class="rec-row h"><span>${fh('SVG88991 / 王秘书','authorizer_name + member_code — 授权人户口。授权人是会员指定的代理操作人（如秘书 / 助理），可代为登录钱包做转账、上下分等操作；与"上级代理"不同（钱包端账号由账房创建，无层级关系）。授权人户口必须是已存在的会员户口')}</span><span class="badge ok">${currentLang==='zh'?'已生效':'Active'}</span></div>
+        <div class="rec-row"><span>${currentLang==='zh'?'生效时间':'Effective'}</span><span class="v">2026-03-01</span></div>
+        <div class="rec-row"><span>${currentLang==='zh'?'权限':'Permission'}</span><span class="v">${currentLang==='zh'?'全权代理':'Full Proxy'}</span></div>
+      </div>
+      <div class="btn-secondary" onclick="toast('${currentLang==='zh'?'添加授权人':'Add'}')">+ ${currentLang==='zh'?'添加授权人':'Add Authorizer'}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /about ---------- */
+RENDERERS.about = () => `
+  <div class="page active">
+    ${navBar('about')}
+    <div class="body-scroll">
+      <div class="about-card">
+        <div class="logo-big">⭐ STAR VIP</div>
+        <div class="sub-en">STAR VIP GAME</div>
+        <div style="color:var(--ink-2);font-size:13px;line-height:1.8">
+          ${currentLang==='zh'?'STAR VIP GAME 是专注于 VIP 会员电投业务的高端服务平台 提供 7×24 小时的安全交易 即时上下分 多币种支持':'STAR VIP GAME — premium e-betting platform for VIP players'}
+        </div>
+        <div class="version">${currentLang==='zh'?'当前版本':'Version'}: v0.0.1</div>
+      </div>
+      <div class="uc-cell-group">
+        <div class="uc-cell"><span class="cell-title">${currentLang==='zh'?'用户协议':'User Agreement'}</span><span class="cell-arrow">›</span></div>
+        <div class="uc-cell"><span class="cell-title">${currentLang==='zh'?'隐私政策':'Privacy Policy'}</span><span class="cell-arrow">›</span></div>
+        <div class="uc-cell"><span class="cell-title">${currentLang==='zh'?'服务热线':'Hotline'}</span><span class="cell-right">+852 0000 0000</span></div>
+      </div>
+    </div>
+  </div>
+`;
+
+/* ---------- /starCoinDetail ---------- */
+RENDERERS.starCoinDetail = () => `
+  <div class="page active">
+    ${navBar('starCoinDetail')}
+    <div class="body-scroll">
+      <div class="uc-banner">
+        <div style="text-align:center">
+          <div style="color:var(--ink-2);font-size:12px">${fh(t('starCoin'),'xing_num — 累积星币数')}</div>
+          <div style="color:var(--gold);font-size:36px;font-weight:700;margin-top:6px">⭐ 1,888</div>
+          <div style="color:var(--ink-3);font-size:11px;margin-top:6px">${fh(currentLang==='zh'?'到期清空':'Expires',' 星币按周期清空，不可累积跨期')}</div>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="f active">${currentLang==='zh'?'全部':'All'}</div>
+        <div class="f">${fh(currentLang==='zh'?'转码奖励':'Convert','convertReward')}</div>
+        <div class="f">${fh(currentLang==='zh'?'电投转码':'E-bet','electricTranscoding')}</div>
+        <div class="f">${fh(currentLang==='zh'?'签到':'Check-in','dailyCheckIn')}</div>
+      </div>
+      ${[
+        {type:'转码奖励',v:'+200',t:'2026-05-12'},
+        {type:'电投转码',v:'+500',t:'2026-05-11'},
+        {type:'每日签到',v:'+10',t:'2026-05-11'},
+        {type:'服务消费',v:'-800',t:'2026-05-10'},
+        {type:'兑换',v:'-200',t:'2026-05-08'}
+      ].map(s=>`
+        <div class="rec-card">
+          <div class="rec-row"><span>${s.type}</span><span class="amount" style="color:${s.v.startsWith('-')?'var(--red)':'var(--green)'}">${s.v} ⭐</span></div>
+          <div class="rec-row"><span style="color:var(--ink-3);font-size:11px">${s.t}</span></div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+`;
+
+/* ---------- /giftRedemption ---------- */
+RENDERERS.giftRedemption = () => `
+  <div class="page active">
+    ${navBar('giftRedemption', {back:true})}
+    <div class="body-scroll">
+      <div class="gift-card-l">
+        <div class="gc-name">⭐ 1,888 ${currentLang==='zh'?'星币可用':'Star Coin'}</div>
+        <div class="gc-need">${currentLang==='zh'?'您已连续签到 5 天，继续签到 2 天可奖励 +50':'Sign in 5 days · +50 in 2 more'}</div>
+        <div class="btn-secondary" style="margin:10px 0 0;background:rgba(255,255,255,.2);color:#fff" onclick="toast('签到+10')">${currentLang==='zh'?'立即签到':'Check In'}</div>
+      </div>
+      <div style="color:var(--ink-2);font-size:12px;padding:14px 16px 6px">${fh(currentLang==='zh'?'可兑换商品':'Available Rewards','礼品 SKU 由账房 /walletApp/giftManagement 后台配置，钱包端只展示。下面是演示占位数据，实施时改读后端 /api/gift/list')}</div>
+      <div class="gift-grid">
+        ${[
+          {n:'iPhone 16 Pro',c:8888},
+          {n:'iPad Air 6',c:3888},
+          {n:'AirPods Pro',c:1888},
+          {n:currentLang==='zh'?'订房代金券':'Hotel Voucher',c:800},
+          {n:currentLang==='zh'?'订车代金券':'Car Voucher',c:500},
+          {n:currentLang==='zh'?'电投代金券':'E-Bet Voucher',c:300}
+        ].map(g=>`
+          <div class="gift-card-m" onclick="toast('${currentLang==='zh'?'确认兑换':'Confirm'} ${g.n}?')">
+            <div class="gm-thumb"></div>
+            <div class="gm-name">${g.n}</div>
+            <div class="gm-cost">⭐ ${g.c}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+`;
+
+/* ---------- /safeSetting ---------- */
+RENDERERS.safeSetting = () => `
+  <div class="page active">
+    ${navBar('safeSetting')}
+    <div class="body-scroll">
+      <div class="uc-cell-group">
+        <div class="uc-cell" onclick="goto('password')">
+          <span class="cell-ico">🔑</span>
+          <span class="cell-title">${fh(t('loginPwd'),'loginPwd — 登录密码 6-20 位字符 含字母数字')}</span>
+          <span class="cell-right">${currentLang==='zh'?'修改':'Modify'}</span>
+          <span class="cell-arrow">›</span>
+        </div>
+        <div class="uc-cell" onclick="goto('payPassword')">
+          <span class="cell-ico">💳</span>
+          <span class="cell-title">${fh(t('payPwd'),'payPwd — 交易密码 6 位数字 用于转账/出码/取款')}</span>
+          <span class="cell-right">${currentLang==='zh'?'修改':'Modify'}</span>
+          <span class="cell-arrow">›</span>
+        </div>
+        <div class="uc-cell" onclick="toast('Google Verify')">
+          <span class="cell-ico">📱</span>
+          <span class="cell-title">${fh(currentLang==='zh'?'谷歌验证':'Google Auth','googleCode — 谷歌验证器二次验证')}</span>
+          <span class="cell-right" style="color:var(--ink-3)">${currentLang==='zh'?'未绑定':'Unbound'}</span>
+          <span class="cell-arrow">›</span>
+        </div>
+      </div>
+      <div class="info-tip">${currentLang==='zh'?'安全好服务 尽在 STARVIP':'Security is our priority'}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /lottery ---------- */
+RENDERERS.lottery = () => `
+  <div class="page active">
+    ${navBar('lottery', {right:t('prizeList')})}
+    <div class="body-scroll" style="text-align:center">
+      <div style="color:var(--gold);font-size:13px;padding:14px">⭐ ${fh('1,888 '+t('starCoin'),'星币余额 xing_num — 会员当前累积星币数；用于抽奖/礼品兑换')}</div>
+      <div class="lottery-wheel" onclick="toast('${currentLang==='zh'?'恭喜抽中：500 星币':'Won 500 Star Coin'}')"></div>
+      <div style="color:var(--ink-2);font-size:12px;margin-top:14px">${currentLang==='zh'?'今日剩余抽奖':'Draws today'}: <span style="color:var(--gold)">3</span> ${currentLang==='zh'?'次':'left'}</div>
+      <div style="color:var(--ink-3);font-size:11px;margin-top:4px">${fh(currentLang==='zh'?'每次消耗 N 星币（由账房配置）':'N Star Coin/draw (config by accountant)','consume — 单次抽奖消耗星币数量。Sammy 2026-05-12 拍板：由账房 /walletApp/luckyManagement 后台配置，钱包端不写死，按配置展示；可在中奖记录查看历史')}</div>
+      <div style="margin-top:20px;cursor:pointer;color:var(--gold);font-size:12px" onclick="goto('prizeList')">📋 ${currentLang==='zh'?'查看奖品列表':'Prize List'} ›</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /lottery/prizeList ---------- */
+RENDERERS.prizeList = () => `
+  <div class="page active">
+    ${navBar('prizeList')}
+    <div class="body-scroll">
+      <div class="filter-row">
+        <div class="f active">${currentLang==='zh'?'奖品介绍':'Prize Info'}</div>
+        <div class="f">${currentLang==='zh'?'中奖记录':'Winning History'}</div>
+      </div>
+      ${[
+        {n:'iPhone 16 Pro',p:'1%',c:200},
+        {n:'AirPods Pro',p:'5%',c:200},
+        {n:currentLang==='zh'?'500 星币':'500 Star Coin',p:'30%',c:200},
+        {n:currentLang==='zh'?'订房代金券':'Hotel Voucher',p:'10%',c:200},
+        {n:currentLang==='zh'?'谢谢参与':'Try Again',p:'54%',c:200}
+      ].map(p=>`
+        <div class="rec-card">
+          <div class="rec-row h"><span>${p.n}</span><span class="badge pending">${p.p}</span></div>
+          <div class="rec-row"><span>${fh(currentLang==='zh'?'单次消耗':'Cost/draw','consume — 单次抽奖消耗星币（值由账房 /walletApp/luckyManagement 配置，每奖品可不同）')}</span><span class="v">⭐ ${p.c}</span></div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+`;
+
+/* ---------- /serviceCenter ---------- */
+RENDERERS.serviceCenter = () => `
+  <div class="page active">
+    ${navBar('serviceCenter')}
+    <div class="body-scroll">
+      <div class="about-card">
+        <div style="font-size:30px;margin-bottom:10px">📞</div>
+        <div style="color:#fff;font-weight:600;font-size:16px">${currentLang==='zh'?'24 小时服务热线':'24/7 Hotline'}</div>
+        <div style="color:var(--gold);font-size:18px;margin-top:14px;font-weight:700">+852 0000 0000</div>
+        <div class="btn-primary" style="margin-top:18px" onclick="toast('${currentLang==='zh'?'一键拨号':'Calling...'}')">📞 ${currentLang==='zh'?'一键拨号':'Call'}</div>
+        <div class="btn-secondary" onclick="toast('${currentLang==='zh'?'已复制':'Copied'}')">${currentLang==='zh'?'长按复制':'Copy'}</div>
+      </div>
+      <div class="uc-cell-group">
+        <div class="uc-cell"><span class="cell-ico">💬</span><span class="cell-title">WhatsApp</span><span class="cell-right">+852 0000 0001</span></div>
+        <div class="uc-cell"><span class="cell-ico">📧</span><span class="cell-title">Email</span><span class="cell-right">vip@star.game</span></div>
+        <div class="uc-cell"><span class="cell-ico">🌐</span><span class="cell-title">Telegram</span><span class="cell-right">@starvipgame</span></div>
+      </div>
+      <div style="color:var(--ink-3);font-size:11px;text-align:center;padding:14px">${currentLang==='zh'?'优质好游戏 尽在 STAR VIP':'Premium games at STAR VIP'}</div>
+    </div>
+  </div>
+`;
+
+/* ---------- /more ---------- */
+RENDERERS.more = () => `
+  <div class="page active">
+    ${navBar('more')}
+    <div class="body-scroll">
+      <div style="color:var(--ink-2);font-size:12px;padding:14px 16px">${t('allServices')}</div>
+      <div class="often-nav" style="grid-template-columns:repeat(4,1fr);height:auto;padding-bottom:18px">
+        ${[
+          {ico:'💸',label:'transfer',go:'transfer'},
+          {ico:'📷',label:'scanCode',go:'scanCode'},
+          {ico:'📲',label:'receiptCode',go:'receiptCode'},
+          {ico:'📅',label:'reserveService',go:'reserveService'},
+          {ico:'🎯',label:'codeOut',go:'codeOut'},
+          {ico:'💸',label:'withdrawal',go:'withdrawal'},
+          {ico:'💰',label:'funds',go:'funds'},
+          {ico:'💱',label:'currencyExchange',go:'currencyExchange'},
+          {ico:'💎',label:'currencyAccess',go:'currencyAccess'},
+          {ico:'🎮',label:'gameWallet',go:'gameWallet'},
+          {ico:'💱',label:'exchangeRate',go:'exchangeRate'},
+          {ico:'🏨',label:'memberServices',go:'memberServices'},
+          {ico:'🎁',label:'giftRedemption',go:'giftRedemption'},
+          {ico:'🎰',label:'lottery',go:'lottery'},
+          {ico:'📞',label:'serviceCenter',go:'serviceCenter'},
+          {ico:'📋',label:'reserveRecord',go:'reserveRecord'}
+        ].map(o=>`
+          <div class="nav-item" onclick="goto('${o.go}')">
+            <div class="nav-icon">${o.ico}</div>
+            <div class="nav-label">${t(o.label)}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="uc-cell-group">
+        <div class="uc-cell" onclick="navJump('agent')"><span class="cell-ico">🏢</span><span class="cell-title">${t('nav_agent')}</span><span class="cell-arrow">›</span></div>
+        <div class="uc-cell" onclick="navJump('game')"><span class="cell-ico">🎮</span><span class="cell-title">${t('nav_game')}</span><span class="cell-arrow">›</span></div>
+      </div>
+    </div>
+  </div>
+`;
+
+/* ============================================================
+   全局逻辑（page 切换 + 语言 + tab + hint bubble）
+   ============================================================ */
+let currentPage = "home";
+let pageHistory = [];
+
+function renderTopBar(){
+  const nav = document.getElementById('pages-nav');
+  nav.innerHTML = PAGES.map(p =>
+    `<button data-page="${p.key}" ${p.key===currentPage?'class="active"':''} onclick="goto('${p.key}')">${t(p.title)}</button>`
+  ).join('');
+}
+
+function renderPage(){
+  const page = PAGES.find(p => p.key === currentPage);
+  if (!page) return;
+  const container = document.getElementById('page-container');
+  const renderer = RENDERERS[page.key];
+  container.innerHTML = renderer ? renderer() : `
+    <div class="page active">
+      ${navBar(page.title)}
+      <div class="body-scroll">
+        <div class="empty">
+          <div class="ico">📄</div>
+          <div>${t('noData')}</div>
+          <div style="margin-top:8px;color:var(--ink-3);font-size:11px">${page.route}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  renderTabBar(page.tab);
+  renderTopBar();
+  bindHomeTabSwitch();
+  bindFieldHints();
+}
+
+function renderTabBar(active){
+  const items = [
+    {key:'home', label:'tab_home', go:'home', ico:'🏠'},
+    {key:'record', label:'tab_record', go:'record', ico:'📊'},
+    {key:'game', label:'tab_game', go:'selectGame', ico:'🎮'},
+    {key:'dynamic', label:'tab_dynamic', go:'dynamic', ico:'📰'},
+    {key:'my', label:'tab_my', go:'userCenter', ico:'👤'}
+  ];
+  document.getElementById('tab-bar').innerHTML = items.map(it =>
+    `<div class="t ${it.key===active?'active':''}" onclick="goto('${it.go}')">
+      <div class="ico">${it.ico}</div>
+      <div>${t(it.label)}</div>
+    </div>`
+  ).join('');
+}
+
+function goto(key){
+  if (key === currentPage) return;
+  pageHistory.push(currentPage);
+  currentPage = key;
+  renderPage();
+}
+function goBack(){
+  if (pageHistory.length > 0) {
+    currentPage = pageHistory.pop();
+  } else {
+    currentPage = 'home';
+  }
+  renderPage();
+}
+function navJump(target){
+  toast(target === 'agent' ? (currentLang==='zh'?'已切换到代理端':'Switched to Agent') : (currentLang==='zh'?'已切换到游戏端':'Switched to Game'));
+}
+
+function bindHomeTabSwitch(){
+  if (currentPage !== 'home') return;
+  const tabs = document.querySelectorAll('.h-tabs .tab[data-htab]');
+  const contentMap = {
+    balance: homeBalanceContent,
+    transaction: homeTransactionContent,
+    start: homeStartContent,
+    game: homeGameContent
+  };
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const k = tab.getAttribute('data-htab');
+      document.getElementById('home-tab-content').innerHTML = contentMap[k]();
+      bindFieldHints();
+    });
+  });
+}
+
+/* ===== 字段气泡 ===== */
+let activeBubble = null;
+function bindFieldHints(){
+  document.querySelectorAll('.field-hint').forEach(el => {
+    el.onmouseenter = (e) => {
+      hideBubble();
+      const text = el.getAttribute('data-hint');
+      const rect = el.getBoundingClientRect();
+      const bubble = document.createElement('div');
+      bubble.className = 'field-hint-bubble';
+      bubble.textContent = text;
+      bubble.style.left = (rect.left + rect.width/2) + 'px';
+      bubble.style.top = rect.top + 'px';
+      document.body.appendChild(bubble);
+      activeBubble = bubble;
+    };
+    el.onmouseleave = hideBubble;
+  });
+}
+function hideBubble(){
+  if (activeBubble) { activeBubble.remove(); activeBubble = null; }
+}
+
+/* ===== toast ===== */
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+/* ===== 语言切换 ===== */
+document.querySelectorAll('.topbar .lang button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.topbar .lang button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentLang = btn.getAttribute('data-lang');
+    renderPage();
+  });
+});
+
+/* ===== init ===== */
+renderPage();
+</script>
+
+</body>
+</html>
